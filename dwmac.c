@@ -10,7 +10,7 @@
 #include "dwphy.h"
 #include "dwtime.h"
 #include "mac802154.h"
-#include "util.h"
+#include "dwutil.h"
 
 #include "mylog.h"
 

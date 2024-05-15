@@ -8,9 +8,9 @@
 #include "dwmac.h"
 #include "dwphy.h"
 #include "dwtime.h"
+#include "dwutil.h"
 #include "mac802154.h"
 #include "ranging.h"
-#include "util.h"
 
 #include "mylog.h"
 
