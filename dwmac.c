@@ -1,18 +1,16 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "app_scheduler.h"
-#include "app_util.h"
-
 #include <deca_device_api.h>
 
 #include "dwmac.h"
+#include "dwmac_task.h"
 #include "dwphy.h"
 #include "dwtime.h"
 #include "mac802154.h"
 #include "dwutil.h"
 
-#include "mylog.h"
+#include "log.h"
 
 static const char* LOG_TAG = "DECA";
 
@@ -43,7 +41,7 @@ static void dwmac_sched_rx_evt(void* data, uint16_t size)
 	dwmac_handle_rx_event(rx);
 }
 
-static void dwmac_sched_tx_done(void* data, uint16_t size)
+void dwmac_handle_tx_done_event(void)
 {
 	if (current_tx != NULL && current_tx->complete_cb != NULL) {
 		current_tx->complete_cb();
@@ -54,6 +52,11 @@ static void dwmac_sched_tx_done(void* data, uint16_t size)
 		&& current_tx->timeout == 0) {
 		current_tx = NULL;
 	}
+}
+
+void dwmac_sched_tx_done(void* data, uint16_t size)
+{
+	dwmac_handle_tx_done_event();
 }
 
 static void rx_ok_cb(const dwt_cb_data_t* status)
@@ -133,11 +136,7 @@ static void rx_ok_cb(const dwt_cb_data_t* status)
 	rx->ts_irq_end = deca_get_sys_time();
 #endif
 
-	ret_code_t ret
-		= app_sched_event_put(rx, sizeof(struct rxbuf), dwmac_sched_rx_evt);
-	if (ret != NRF_SUCCESS) {
-		LOG_ERR("Failed to add RX to scheduler! %ld", ret);
-	}
+	dwtask_queue_event(DWEVT_RX, rx);
 }
 
 static void rx_to_cb(const dwt_cb_data_t* dat)
@@ -164,10 +163,7 @@ static void rx_to_cb(const dwt_cb_data_t* dat)
 	struct rxbuf* rx = &rx_buffer;
 	rx->evt = RX_TIMEOUT;
 	memcpy(rx->u.buf, &dat->status, 4); // TODO: improve
-	ret_code_t ret = app_sched_event_put(rx, 5, dwmac_sched_rx_evt);
-	if (ret != NRF_SUCCESS) {
-		LOG_ERR("Failed to add RX Timeout to scheduler! %ld", ret);
-	}
+	dwtask_queue_event(DWEVT_RX, rx);
 
 	if (rx_reenable || (current_tx != NULL && current_tx->resp_multi)) {
 		dwt_rxenable(DWT_START_RX_IMMEDIATE);
@@ -185,20 +181,14 @@ static void rx_err_cb(const dwt_cb_data_t* dat)
 	struct rxbuf* rx = &rx_buffer;
 	rx->evt = RX_ERR;
 	memcpy(rx->u.buf, &dat->status, 4); // TODO: improve
-	ret_code_t ret = app_sched_event_put(rx, 5, dwmac_sched_rx_evt);
-	if (ret != NRF_SUCCESS) {
-		LOG_ERR("Failed to add RX Error to scheduler! %ld", ret);
-	}
+	dwtask_queue_event(DWEVT_RX, rx);
 
 	/* in case we are waiting for a timeout, also queue a RX_TIMEOUT event (!)
 	 * so the timeout handlers are called. */
 	if (current_tx != NULL
 		&& (current_tx->timeout != 0 || current_tx->pto != 0)) {
 		rx->evt = RX_TIMEOUT;
-		ret = app_sched_event_put(rx, 5, dwmac_sched_rx_evt);
-		if (ret != NRF_SUCCESS) {
-			LOG_ERR("Failed to add RX Error/Timeout to scheduler! %ld", ret);
-		}
+		dwtask_queue_event(DWEVT_RX, rx);
 	}
 }
 
@@ -210,10 +200,7 @@ static void tx_done_cb(const dwt_cb_data_t* dat)
 		return;
 	}
 
-	ret_code_t ret = app_sched_event_put(NULL, 0, dwmac_sched_tx_done);
-	if (ret != NRF_SUCCESS) {
-		LOG_ERR("Failed to add TX to scheduler! %ld", ret);
-	}
+	dwtask_queue_event(DWEVT_TX_DONE, NULL);
 }
 
 static void spi_err_cb(const dwt_cb_data_t* dat)
@@ -275,6 +262,9 @@ bool dwmac_init(uint16_t mypanId, uint16_t myAddr, uint16_t rx_timeout_sec,
 						 | DWT_INT_RXPTO | DWT_INT_SFDT,
 					 0, DWT_ENABLE_INT_ONLY);
 #endif
+
+	dwtask_init();
+
 	return true;
 }
 
@@ -619,7 +609,7 @@ bool dwmac_tx_raw(struct txbuf* tx)
 #endif
 
 #if CONFIG_DECA_DEBUG_TX_DUMP
-	LOG_HEXDUMP_DBG("TX: ", tx->u.buf, tx->len);
+	LOG_HEXDUMP(tx->u.buf, tx->len);
 #endif
 	return true;
 }
@@ -639,6 +629,8 @@ void dwmac_handle_rx_event(struct rxbuf* rx)
 		LOG_DBG("RX to Sched:\t%d", (int)DTU_TO_US(st - rx->ts));
 		LOG_DBG("Time in CB:\t%d",
 				(int)DTU_TO_US(rx->ts_irq_end - rx->ts_irq_start));
+		LOG_DBG("IRQ start %lu", (uint32_t)rx->ts_irq_start);
+		LOG_DBG("IRQ end %lu", (uint32_t)rx->ts_irq_end);
 #endif
 
 #if CONFIG_DECA_DEBUG_RX_DUMP

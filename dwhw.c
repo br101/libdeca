@@ -1,6 +1,6 @@
 
-#include "nrf_delay.h"
 #include <string.h>
+#include <stdio.h>
 
 #include <deca_version.h>
 #include <deca_device_api.h>
@@ -13,7 +13,7 @@
 #include "dwhw.h"
 #include "dwphy.h"
 
-#include "mylog.h"
+#include "log.h"
 
 static const char* LOG_TAG = "DECA";
 
@@ -42,7 +42,7 @@ bool dwhw_init(void)
 
 	int cnt = 1000;
 	while (!dwt_checkidlerc() && cnt-- > 0) {
-		nrf_delay_ms(1);
+		deca_sleep(1);
 	};
 	if (cnt <= 0) {
 		LOG_ERR("did not leave IDLE state");
@@ -109,7 +109,7 @@ bool dwhw_wakeup(void)
 	 * Or from DWM1001-Dev Simple Examples "it takes ~35us in total for the
 	 * DW1000 to lock the PLL, download AON and go to IDLE state"
 	 */
-	nrf_delay_ms(1);
+	deca_sleep(1);
 
 	int ret = dwt_check_dev_id();
 	if (ret != DWT_SUCCESS) {

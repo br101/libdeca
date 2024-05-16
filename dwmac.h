@@ -123,6 +123,7 @@ bool dwmac_tx_raw(struct txbuf* tx);
 
 void dwmac_handle_rx_event(struct rxbuf* rx);
 void dwmac_handle_rx_timeout(void);
+void dwmac_handle_tx_done_event(void);
 
 /* statistics */
 void dwmac_get_cnt(uint32_t* tx_start_cnt, uint32_t* tx_irq_cnt,

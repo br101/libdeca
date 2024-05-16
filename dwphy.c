@@ -1,5 +1,4 @@
-#include "app_util.h" // CEIL_DIV
-#include <stdlib.h>	  // abs
+#include <stdlib.h> // abs
 
 #include <deca_device_api.h>
 #if DW3000_DRIVER_VERSION < 0x060007
@@ -9,7 +8,7 @@
 #include "dwmac.h"
 #include "dwphy.h"
 
-#include "mylog.h"
+#include "log.h"
 
 static const char* LOG_TAG = "DECA";
 

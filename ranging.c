@@ -1,4 +1,3 @@
-#include "nrf_delay.h"
 #include <math.h>
 #include <stdbool.h>
 #include <stdint.h>
@@ -12,7 +11,7 @@
 #include "mac802154.h"
 #include "ranging.h"
 
-#include "mylog.h"
+#include "log.h"
 
 static const char* LOG_TAG = "TWR";
 
@@ -410,7 +409,7 @@ static void twr_retry(void)
 
 	if (++retry < TWR_MAX_RETRY) {
 		int d = rand() % TWR_RETRY_DELAY;
-		nrf_delay_ms(d);
+		deca_sleep(d);
 		LOG_INF("retry %d to " ADDR_FMT " after %d ms", retry, addr, d);
 		twr_send_poll(addr);
 	} else {

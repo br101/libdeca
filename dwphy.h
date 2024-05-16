@@ -5,7 +5,7 @@
 #include <stddef.h>
 #include <stdint.h>
 
-#include "util.h"
+#include "dwutil.h"
 
 /* Default antenna delay values for 64 MHz PRF, usually calibrated
  * (PRF16: 16418) */
