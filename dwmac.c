@@ -4,11 +4,11 @@
 #include <deca_device_api.h>
 
 #include "dwmac.h"
-#include "dwmac_task.h"
 #include "dwphy.h"
 #include "dwtime.h"
-#include "mac802154.h"
 #include "dwutil.h"
+#include "mac802154.h"
+#include "platform/dwmac_task.h"
 
 #include "log.h"
 
@@ -35,12 +35,6 @@ uint32_t tx_irq_cnt = 0;
 struct txbuf* current_tx = NULL;
 bool rx_reenable = false;
 
-static void dwmac_sched_rx_evt(void* data, uint16_t size)
-{
-	struct rxbuf* rx = data;
-	dwmac_handle_rx_event(rx);
-}
-
 void dwmac_handle_tx_done_event(void)
 {
 	if (current_tx != NULL && current_tx->complete_cb != NULL) {
@@ -52,11 +46,6 @@ void dwmac_handle_tx_done_event(void)
 		&& current_tx->timeout == 0) {
 		current_tx = NULL;
 	}
-}
-
-void dwmac_sched_tx_done(void* data, uint16_t size)
-{
-	dwmac_handle_tx_done_event();
 }
 
 static void rx_ok_cb(const dwt_cb_data_t* status)
