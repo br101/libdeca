@@ -462,7 +462,6 @@ int dwphy_pac_to_usec(uint16_t pacs)
 
 /* Minimal/maximal value of the target XTAL offset in hundreds of PPM
  * (i.e. 1ppm = 100, 10ppm = 1000) */
-#define XTAL_OFFSET_PPHM_MIN 0
 #define XTAL_OFFSET_PPHM_MAX 100
 
 /* The typical trimming range of DW3000 (with 2pF external caps is ~48ppm
@@ -479,10 +478,9 @@ void dwphy_xtal_trim(void)
 
 	unsigned int off_abs = abs(off_pphm);
 
-	if (off_abs > XTAL_OFFSET_PPHM_MAX || off_abs < XTAL_OFFSET_PPHM_MIN) {
+	if (off_abs > XTAL_OFFSET_PPHM_MAX) {
 		int8_t tmp = xtalTrim;
-		tmp -= ((XTAL_OFFSET_PPHM_MAX + XTAL_OFFSET_PPHM_MIN) / 2 + off_pphm)
-			   * XTAL_AVG_TRIM_PER_PPHM;
+		tmp -= (XTAL_OFFSET_PPHM_MAX / 2 + off_pphm) * XTAL_AVG_TRIM_PER_PPHM;
 
 		if (tmp > XTAL_TRIM_BIT_MASK) {
 			tmp = XTAL_TRIM_BIT_MASK;

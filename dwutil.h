@@ -10,3 +10,8 @@
 	}
 
 #endif
+
+#ifndef CEIL_DIV
+#define CEIL_DIV(A, B)      \
+    (((A) + (B) - 1) / (B))
+#endif
