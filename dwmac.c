@@ -443,7 +443,7 @@ bool dwmac_tx_raw(struct txbuf* tx)
 
 extern uint64_t dw_irq_time;
 
-void dwmac_handle_rx_frame(struct rxbuf* rx)
+void dwmac_handle_rx_frame(const struct rxbuf* rx)
 {
 #if CONFIG_DECA_DEBUG_IRQ_TIME
 	uint64_t st = deca_get_sys_time();

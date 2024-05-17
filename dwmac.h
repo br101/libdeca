@@ -66,7 +66,7 @@ struct rxbuf {
 
 typedef void (*deca_to_cb)(uint32_t status);
 typedef void (*deca_err_cb)(uint32_t status);
-typedef void (*deca_rx_cb)(struct rxbuf* buf);
+typedef void (*deca_rx_cb)(const struct rxbuf* buf);
 typedef void (*deca_tx_complete_cb)(void);
 
 struct txbuf {
@@ -114,7 +114,7 @@ int dwmac_tx_at_slot_len(struct txbuf* tx, size_t max_pkt_len,
 bool dwmac_tx_queue(struct txbuf* tx);
 bool dwmac_tx_raw(struct txbuf* tx);
 
-void dwmac_handle_rx_frame(struct rxbuf* rx);
+void dwmac_handle_rx_frame(const struct rxbuf* rx);
 void dwmac_handle_rx_timeout(uint32_t status);
 void dwmac_handle_tx_done(void);
 void dwmac_handle_error(uint32_t status);

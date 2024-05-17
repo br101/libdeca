@@ -17,7 +17,10 @@
 
 struct dwmac_event_s {
 	enum dwevent_e type;
-	void* data;
+	union {
+		const void* ptr;
+		uint32_t status;
+	} u;
 };
 
 static const char* LOG_TAG = "DWTASK";
@@ -35,12 +38,16 @@ static void dwmac_task(void* pvParameters)
 		if (rc == pdTRUE) { // received
 			switch (dwmac_evt.type) {
 			case DWEVT_RX:
-				struct rxbuf* rx = dwmac_evt.data;
-				dwmac_handle_rx_event(rx);
+				dwmac_handle_rx_frame(dwmac_evt.u.ptr);
+				break;
+			case DWEVT_RX_TIMEOUT:
+				dwmac_handle_rx_timeout(dwmac_evt.u.status);
 				break;
 			case DWEVT_TX_DONE:
-				dwmac_handle_tx_done_event();
+				dwmac_handle_tx_done();
 				break;
+			case DWEVT_ERR:
+				dwmac_handle_error(dwmac_evt.u.status);
 			}
 		}
 	}
@@ -64,12 +71,17 @@ int dwtask_init(void)
 	return ESP_OK;
 }
 
-int dwtask_queue_event(enum dwevent_e type, void* data)
+int dwtask_queue_event(enum dwevent_e type, const void* data)
 {
 	struct dwmac_event_s evt = {
 		.type = type,
-		.data = data,
 	};
+
+	if (type == DWEVT_RX) {
+		evt.u.ptr = data;
+	} else if (type == DWEVT_RX_TIMEOUT || type == DWEVT_ERR) {
+		evt.u.status = *(uint32_t*)data;
+	}
 
 	BaseType_t xHigherPriorityTaskWoken = pdFALSE;
 	BaseType_t rc;

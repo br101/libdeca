@@ -554,7 +554,7 @@ static void twr_sequence_next(void)
  * MAC layer / protocol callbacks
  */
 
-void twr_handle_message(struct rxbuf* rx)
+void twr_handle_message(const struct rxbuf* rx)
 {
 	/* drop unexpected messages, but always allow POLL in case the sender needs
 	 * to retry */
