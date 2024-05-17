@@ -7,16 +7,13 @@
 #include "dwphy.h"
 #include "dwtime.h"
 #include "dwutil.h"
-#include "mac802154.h"
 #include "platform/dwmac_task.h"
 
 #include "log.h"
 
-static const char* LOG_TAG = "DECA";
-
 #define DWMAC_DEFAULT_TX_TIMEO 20
-#define DWMAC_RETRY_TIMEOUT	   20000
-#define DWMAC_RETRY_COUNT	   5
+
+static const char* LOG_TAG = "DECA";
 
 static uint16_t panId;
 static uint16_t macAddr;
@@ -26,161 +23,21 @@ static deca_rx_cb dwmac_rx_cb = NULL;
 static deca_to_cb dwmac_to_cb = NULL;
 static deca_err_cb dwmac_err_cb = NULL;
 static uint32_t mac_tx_cnt = 0;
-static uint32_t rx_timeout_cnt = 0;
+static uint32_t rx_stuck_cnt = 0;
 static struct txbuf tx_buffer;
-static struct rxbuf rx_buffer;
 
 /* shared with dwmac_irq.c */
 uint32_t tx_irq_cnt = 0;
+struct rxbuf rx_buffer;
 struct txbuf* current_tx = NULL;
 bool rx_reenable = false;
 
-static void rx_ok_cb(const dwt_cb_data_t* status)
-{
-	// DBG_UWB("*** RX %lx flags %x", status->status, status->rx_flags);
-
-#if CONFIG_DECA_DEBUG_IRQ_TIME
-	uint64_t start_ts = deca_get_sys_time();
-#endif
-
-	if (current_tx != NULL && current_tx->pto != 0) {
-		/* sometimes PTO triggers even though we just received a frame.
-		 * this seems to happen when PTO is quite small, to avoid this
-		 * we disable it here */
-		// LOG_INF("*** Disable PTO");
-		dwt_setpreambledetecttimeout(0);
-	}
-
-	if (status->datalength > DWMAC_RXBUF_LEN) {
-		LOG_ERR("Received frame too large");
-		if (rx_reenable) {
-			dwt_rxenable(DWT_START_RX_IMMEDIATE);
-		}
-		return;
-	}
-	struct rxbuf* rx = &rx_buffer;
-	if (rx == NULL) {
-		LOG_ERR("RX Queue full (Data)");
-		if (rx_reenable) {
-			dwt_rxenable(DWT_START_RX_IMMEDIATE);
-		}
-		return;
-	}
-
-	rx->len = status->datalength;
-	rx->ts = deca_get_rx_timestamp();
-
-	if (!(status->rx_flags & DWT_CB_DATA_RX_FLAG_ND)
-		&& status->datalength > 0) {
-		dwt_readrxdata(rx->u.buf, status->datalength, 0);
-	}
-
-	if (status->rx_flags & DWT_CB_DATA_RX_FLAG_CPER) {
-		uint16_t stat;
-		dwt_readstsstatus(&stat, 0);
-		if (stat & ~0x100) {
-			// TODO: Don't log status "Peak growth rate warning"
-			LOG_ERR("STS error STS_TOAST: %x", stat);
-		}
-		// TODO: handle error
-	} else if (status->rx_flags & DWT_CB_DATA_RX_FLAG_ND) {
-		// TODO: STS can also be used with data frames
-		int16_t stsq;
-		int sts_ok = dwt_readstsquality(&stsq);
-		if (!sts_ok) {
-			LOG_ERR("STS Qual not good %d", stsq);
-			// TODO: handle error
-		}
-	}
-
-#if DWMAC_USE_CARRIERINTEG
-	rx->ci = dwt_readcarrierintegrator();
-#endif
-
-#if DWMAC_INCLUDE_RXDIAG
-	dwt_readdiagnostics(&rx->diag);
-#endif
-
-	if (rx_reenable || rx->u.s.hdr.fc & MAC154_FC_FRAME_PEND
-		|| (current_tx != NULL && current_tx->resp_multi)) {
-		dwt_rxenable(DWT_START_RX_IMMEDIATE);
-	}
-
-#if CONFIG_DECA_DEBUG_IRQ_TIME
-	rx->ts_irq_start = start_ts;
-	rx->ts_irq_end = deca_get_sys_time();
-#endif
-
-	dwtask_queue_event(DWEVT_RX, rx);
-}
-
-static void rx_to_cb(const dwt_cb_data_t* dat)
-{
-	DBG_UWB("*** RX TO %lx", dat->status);
-
-#if DW3000_DRIVER_VERSION >= 0x060007
-	/* reset timeout values to zero, if not they keep triggering */
-	if (dat->status & DWT_INT_RXFTO_BIT_MASK) {
-		dwt_setrxtimeout(0);
-	}
-	if (dat->status & DWT_INT_RXPTO_BIT_MASK) {
-		dwt_setpreambledetecttimeout(0);
-	}
-#else
-	if (dat->status & DWT_INT_RFTO) {
-		dwt_setrxtimeout(0);
-	}
-	if (dat->status & DWT_INT_RXPTO) {
-		dwt_setpreambledetecttimeout(0);
-	}
-#endif
-
-	dwtask_queue_event(DWEVT_RX_TIMEOUT, &dat->status);
-
-	if (rx_reenable || (current_tx != NULL && current_tx->resp_multi)) {
-		dwt_rxenable(DWT_START_RX_IMMEDIATE);
-	}
-}
-
-static void rx_err_cb(const dwt_cb_data_t* dat)
-{
-	DBG_UWB("*** ERR %x %lx", dat->rx_flags, dat->status);
-
-	if (rx_reenable || (current_tx != NULL && current_tx->resp_multi)) {
-		dwt_rxenable(DWT_START_RX_IMMEDIATE);
-	}
-
-	dwtask_queue_event(DWEVT_ERR, &dat->status);
-
-	/* in case we are waiting for a timeout, also queue a RX_TIMEOUT event (!)
-	 * so the timeout handlers are called. */
-	if (current_tx != NULL
-		&& (current_tx->timeout != 0 || current_tx->pto != 0)) {
-		dwtask_queue_event(DWEVT_RX_TIMEOUT, &dat->status);
-	}
-}
-
-static void tx_done_cb(const dwt_cb_data_t* dat)
-{
-	// DBG_UWB("*** TX Done %lx", dat->status);
-
-	if (current_tx == NULL) {
-		return;
-	}
-
-	dwtask_queue_event(DWEVT_TX_DONE, NULL);
-}
-
-static void spi_err_cb(const dwt_cb_data_t* dat)
-{
-	LOG_ERR("*** SPI ERR");
-}
-
-static void spi_rdy_cb(const dwt_cb_data_t* dat)
-{
-	LOG_INF("*** SPI RDY");
-	// dwt_write32bitreg(SYS_STATUS_ID, SYS_STATUS_SPIRDY_BIT_MASK);
-}
+extern void dwmac_irq_rx_ok_cb(const dwt_cb_data_t* dat);
+extern void dwmac_irq_rx_to_cb(const dwt_cb_data_t* dat);
+extern void dwmac_irq_err_cb(const dwt_cb_data_t* dat);
+extern void dwmac_irq_tx_done_cb(const dwt_cb_data_t* dat);
+extern void dwmac_irq_spi_err_cb(const dwt_cb_data_t* dat);
+extern void dwmac_irq_spi_rdy_cb(const dwt_cb_data_t* dat);
 
 bool dwmac_init(uint16_t mypanId, uint16_t myAddr, uint16_t rx_timeout_sec,
 				deca_rx_cb rx_cb, deca_to_cb to_cb, deca_err_cb err_cb)
@@ -212,8 +69,9 @@ bool dwmac_init(uint16_t mypanId, uint16_t myAddr, uint16_t rx_timeout_sec,
 	// dwmac_plat_init(rx_timeout_sec);
 
 #if DW3000_DRIVER_VERSION >= 0x060007
-	dwt_setcallbacks(tx_done_cb, rx_ok_cb, rx_to_cb, rx_err_cb, spi_err_cb,
-					 spi_rdy_cb, NULL);
+	dwt_setcallbacks(dwmac_irq_tx_done_cb, dwmac_irq_rx_ok_cb,
+					 dwmac_irq_rx_to_cb, dwmac_irq_err_cb, dwmac_irq_spi_err_cb,
+					 dwmac_irq_spi_rdy_cb, NULL);
 
 	dwt_setinterrupt(DWT_INT_RXFCG_BIT_MASK | DWT_INT_TXFRS_BIT_MASK
 						 | DWT_INT_RXPHE_BIT_MASK | DWT_INT_RXFCE_BIT_MASK
@@ -222,8 +80,9 @@ bool dwmac_init(uint16_t mypanId, uint16_t myAddr, uint16_t rx_timeout_sec,
 						 | DWT_INT_RXSTO_BIT_MASK,
 					 0, DWT_ENABLE_INT_ONLY);
 #else
-	dwt_setcallbacks(tx_done_cb, rx_ok_cb, rx_to_cb, rx_err_cb, spi_err_cb,
-					 spi_rdy_cb);
+	dwt_setcallbacks(dwmac_irq_tx_done_cb, dwmac_irq_rx_ok_cb,
+					 dwmac_irq_rx_to_cb, dwmac_irq_err_cb, dwmac_irq_spi_err_cb,
+					 dwmac_irq_spi_rdy_cb);
 
 	dwt_setinterrupt(DWT_INT_RFCG | DWT_INT_TFRS | DWT_INT_RPHE | DWT_INT_RFCE
 						 | DWT_INT_RFSL | DWT_INT_RFTO | DWT_INT_LDEERR
@@ -673,7 +532,7 @@ void dwmac_rx_unstuck(void)
 	 * that the DW1000 got stuck and needs a TRX reset.
 	 * This is only done when we assume to receive something
 	 * often (rx_reenable as on ancors) */
-	rx_timeout_cnt++;
+	rx_stuck_cnt++;
 	if (rx_reenable) {
 		LOG_DBG("RX Timout, force RX enable");
 		dwt_forcetrxoff();
@@ -685,7 +544,7 @@ void dwmac_get_cnt(uint32_t* tx_start, uint32_t* tx_irq, uint32_t* rx_to)
 {
 	*tx_start = mac_tx_cnt;
 	*tx_irq = tx_irq_cnt;
-	*rx_to = rx_timeout_cnt;
+	*rx_to = rx_stuck_cnt;
 }
 
 #define SPI_TIME(_x)   (_x * 2.7) /* us measured with 8MHz no DMA */
