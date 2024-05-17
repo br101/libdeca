@@ -38,12 +38,6 @@
 			LOG_ERR("Failed to queue " __VA_ARGS__);                           \
 	} while (0)
 
-enum rxevent {
-	RX_FRAME,
-	RX_TIMEOUT,
-	RX_ERR,
-};
-
 /* for convienient access to mac154 header and buffer and "our protocol" func */
 union macbuf {
 	uint8_t buf[DWMAC_RXBUF_LEN];
@@ -55,7 +49,6 @@ union macbuf {
 };
 
 struct rxbuf {
-	enum rxevent evt;
 	union macbuf u;
 	size_t len;
 	uint64_t ts; /* RX timestamp from DW3000 */
@@ -121,9 +114,12 @@ int dwmac_tx_at_slot_len(struct txbuf* tx, size_t max_pkt_len,
 bool dwmac_tx_queue(struct txbuf* tx);
 bool dwmac_tx_raw(struct txbuf* tx);
 
-void dwmac_handle_rx_event(struct rxbuf* rx);
-void dwmac_handle_rx_timeout(void);
-void dwmac_handle_tx_done_event(void);
+void dwmac_handle_rx_frame(struct rxbuf* rx);
+void dwmac_handle_rx_timeout(uint32_t status);
+void dwmac_handle_tx_done(void);
+void dwmac_handle_error(uint32_t status);
+
+void dwmac_rx_unstuck(void);
 
 /* statistics */
 void dwmac_get_cnt(uint32_t* tx_start_cnt, uint32_t* tx_irq_cnt,

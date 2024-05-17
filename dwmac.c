@@ -35,19 +35,6 @@ uint32_t tx_irq_cnt = 0;
 struct txbuf* current_tx = NULL;
 bool rx_reenable = false;
 
-void dwmac_handle_tx_done_event(void)
-{
-	if (current_tx != NULL && current_tx->complete_cb != NULL) {
-		current_tx->complete_cb();
-	}
-
-	// only remove TX if we are not waiting for a RX timeout
-	if (current_tx != NULL && current_tx->pto == 0
-		&& current_tx->timeout == 0) {
-		current_tx = NULL;
-	}
-}
-
 static void rx_ok_cb(const dwt_cb_data_t* status)
 {
 	// DBG_UWB("*** RX %lx flags %x", status->status, status->rx_flags);
@@ -80,7 +67,6 @@ static void rx_ok_cb(const dwt_cb_data_t* status)
 		return;
 	}
 
-	rx->evt = RX_FRAME;
 	rx->len = status->datalength;
 	rx->ts = deca_get_rx_timestamp();
 
@@ -149,10 +135,7 @@ static void rx_to_cb(const dwt_cb_data_t* dat)
 	}
 #endif
 
-	struct rxbuf* rx = &rx_buffer;
-	rx->evt = RX_TIMEOUT;
-	memcpy(rx->u.buf, &dat->status, 4); // TODO: improve
-	dwtask_queue_event(DWEVT_RX, rx);
+	dwtask_queue_event(DWEVT_RX_TIMEOUT, &dat->status);
 
 	if (rx_reenable || (current_tx != NULL && current_tx->resp_multi)) {
 		dwt_rxenable(DWT_START_RX_IMMEDIATE);
@@ -161,23 +144,19 @@ static void rx_to_cb(const dwt_cb_data_t* dat)
 
 static void rx_err_cb(const dwt_cb_data_t* dat)
 {
-	DBG_UWB("*** RX ERR %x %lx", dat->rx_flags, dat->status);
+	DBG_UWB("*** ERR %x %lx", dat->rx_flags, dat->status);
 
 	if (rx_reenable || (current_tx != NULL && current_tx->resp_multi)) {
 		dwt_rxenable(DWT_START_RX_IMMEDIATE);
 	}
 
-	struct rxbuf* rx = &rx_buffer;
-	rx->evt = RX_ERR;
-	memcpy(rx->u.buf, &dat->status, 4); // TODO: improve
-	dwtask_queue_event(DWEVT_RX, rx);
+	dwtask_queue_event(DWEVT_ERR, &dat->status);
 
 	/* in case we are waiting for a timeout, also queue a RX_TIMEOUT event (!)
 	 * so the timeout handlers are called. */
 	if (current_tx != NULL
 		&& (current_tx->timeout != 0 || current_tx->pto != 0)) {
-		rx->evt = RX_TIMEOUT;
-		dwtask_queue_event(DWEVT_RX, rx);
+		dwtask_queue_event(DWEVT_RX_TIMEOUT, &dat->status);
 	}
 }
 
@@ -605,29 +584,27 @@ bool dwmac_tx_raw(struct txbuf* tx)
 
 extern uint64_t dw_irq_time;
 
-void dwmac_handle_rx_event(struct rxbuf* rx)
+void dwmac_handle_rx_frame(struct rxbuf* rx)
 {
-	switch (rx->evt) {
-	case RX_FRAME: {
 #if CONFIG_DECA_DEBUG_IRQ_TIME
-		uint64_t st = deca_get_sys_time();
-		// LOG_DBG("RX to IRQ\t%d", (int)DTU_TO_US(dw_irq_time - rx->ts));
-		LOG_DBG("RX to CB:\t%d", (int)DTU_TO_US(rx->ts_irq_start - rx->ts));
-		// LOG_DBG("IRQ to CB\t%d", (int)DTU_TO_US(rx->ts_irq_start -
-		// dw_irq_time));
-		LOG_DBG("RX to Sched:\t%d", (int)DTU_TO_US(st - rx->ts));
-		LOG_DBG("Time in CB:\t%d",
-				(int)DTU_TO_US(rx->ts_irq_end - rx->ts_irq_start));
-		LOG_DBG("IRQ start %lu", (uint32_t)rx->ts_irq_start);
-		LOG_DBG("IRQ end %lu", (uint32_t)rx->ts_irq_end);
+	uint64_t st = deca_get_sys_time();
+	// LOG_DBG("RX to IRQ\t%d", (int)DTU_TO_US(dw_irq_time - rx->ts));
+	LOG_DBG("RX to CB:\t%d", (int)DTU_TO_US(rx->ts_irq_start - rx->ts));
+	// LOG_DBG("IRQ to CB\t%d", (int)DTU_TO_US(rx->ts_irq_start -
+	// dw_irq_time));
+	LOG_DBG("RX to Sched:\t%d", (int)DTU_TO_US(st - rx->ts));
+	LOG_DBG("Time in CB:\t%d",
+			(int)DTU_TO_US(rx->ts_irq_end - rx->ts_irq_start));
+	LOG_DBG("IRQ start %lu", (uint32_t)rx->ts_irq_start);
+	LOG_DBG("IRQ end %lu", (uint32_t)rx->ts_irq_end);
 #endif
 
 #if CONFIG_DECA_DEBUG_RX_DUMP
-		LOG_HEXDUMP("RX: ", rx->u.buf, rx->len);
+	LOG_HEXDUMP("RX: ", rx->u.buf, rx->len);
 #endif
 
 #if DWMAC_INCLUDE_RXDIAG
-		LOG_INF("DIAG preamb %d", rx->diag.rxPreamCount);
+	LOG_INF("DIAG preamb %d", rx->diag.rxPreamCount);
 #endif
 
 #if 0
@@ -641,57 +618,56 @@ void dwmac_handle_rx_event(struct rxbuf* rx)
 #endif
 
 #if DWMAC_XTAL_TRIM
-		if (rx->len > 0) {
-			dwphy_xtal_trim();
-		}
+	if (rx->len > 0) {
+		dwphy_xtal_trim();
+	}
 #endif
 
-		if (dwmac_rx_cb != NULL) {
-			dwmac_rx_cb(rx);
-		}
-		break;
+	if (dwmac_rx_cb != NULL) {
+		dwmac_rx_cb(rx);
 	}
-
-	case RX_TIMEOUT: {
-		uint32_t status = 0;
-		memcpy(&status, rx->u.buf, 4);
-#if CONFIG_DECA_DEBUG_RX_STATUS
-		deca_print_irq_status(status);
-#endif
-
-		if (current_tx && current_tx->to_cb != NULL) {
-			current_tx->to_cb(status);
-		}
-
-		if (dwmac_to_cb != NULL) {
-			dwmac_to_cb(status);
-		}
-
-		/* unblock TX task */
-		// dwmac_plat_tx_timeout_received();
-		break;
-	}
-
-	case RX_ERR: {
-		uint32_t status = 0;
-		memcpy(&status, rx->u.buf, 4);
-
-#if CONFIG_DECA_DEBUG_RX_STATUS
-		deca_print_irq_status(status);
-#endif
-
-		if (dwmac_err_cb != NULL) {
-			dwmac_err_cb(status);
-		}
-
-		break;
-	}
-	}
-
-	// bufs_return(rx_bufs, rx);
 }
 
-void dwmac_handle_rx_timeout(void)
+void dwmac_handle_rx_timeout(uint32_t status)
+{
+#if CONFIG_DECA_DEBUG_RX_STATUS
+	deca_print_irq_status(status);
+#endif
+
+	if (current_tx && current_tx->to_cb != NULL) {
+		current_tx->to_cb(status);
+	}
+
+	if (dwmac_to_cb != NULL) {
+		dwmac_to_cb(status);
+	}
+}
+
+void dwmac_handle_tx_done(void)
+{
+	if (current_tx != NULL && current_tx->complete_cb != NULL) {
+		current_tx->complete_cb();
+	}
+
+	// only remove TX if we are not waiting for a RX timeout
+	if (current_tx != NULL && current_tx->pto == 0
+		&& current_tx->timeout == 0) {
+		current_tx = NULL;
+	}
+}
+
+void dwmac_handle_error(uint32_t status)
+{
+#if CONFIG_DECA_DEBUG_RX_STATUS
+	deca_print_irq_status(status);
+#endif
+
+	if (dwmac_err_cb != NULL) {
+		dwmac_err_cb(status);
+	}
+}
+
+void dwmac_rx_unstuck(void)
 {
 	/* if we didn't receive for a longer time we suspect
 	 * that the DW1000 got stuck and needs a TRX reset.
