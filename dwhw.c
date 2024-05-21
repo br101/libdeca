@@ -4,9 +4,6 @@
 
 #include <deca_version.h>
 #include <deca_device_api.h>
-#if DW3000_DRIVER_VERSION >= 0x060007
-#include <deca_probe_interface.h>
-#endif
 #include <dw3000_hw.h>
 #include <dw3000_spi.h>
 
@@ -14,6 +11,10 @@
 #include "dwphy.h"
 
 #include "log.h"
+
+#ifdef DRIVER_VERSION_HEX // >= 0x060007
+extern const struct dwt_probe_s dw3000_probe_interf;
+#endif
 
 static const char* LOG_TAG = "DECA";
 
@@ -23,7 +24,7 @@ bool dwhw_init(void)
 {
 	int ret;
 
-#if DW3000_DRIVER_VERSION >= 0x060007
+#ifdef DRIVER_VERSION_HEX // >= 0x060007
 	ret = dwt_probe((struct dwt_probe_s*)&dw3000_probe_interf);
 	if (ret < 0) {
 		LOG_ERR("DWT Probe failed");
@@ -114,7 +115,7 @@ bool dwhw_wakeup(void)
 		return false;
 	}
 
-#if DW3000_DRIVER_VERSION >= 0x060007
+#ifdef DRIVER_VERSION_HEX // >= 0x060007
 	dwt_softreset(0);
 #else
 	dwt_softreset();

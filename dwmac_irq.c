@@ -1,6 +1,7 @@
 
 #include <string.h>
 
+#include <deca_version.h>
 #include <deca_device_api.h>
 
 #include "dwmac.h"
@@ -99,7 +100,7 @@ void dwmac_irq_rx_to_cb(const dwt_cb_data_t* dat)
 {
 	DBG_UWB_IRQ("*** RX TO %lx", dat->status);
 
-#if DW3000_DRIVER_VERSION >= 0x060007
+#ifdef DRIVER_VERSION_HEX // >= 0x060007
 	/* reset timeout values to zero, if not they keep triggering */
 	if (dat->status & DWT_INT_RXFTO_BIT_MASK) {
 		dwt_setrxtimeout(0);
@@ -107,7 +108,7 @@ void dwmac_irq_rx_to_cb(const dwt_cb_data_t* dat)
 	if (dat->status & DWT_INT_RXPTO_BIT_MASK) {
 		dwt_setpreambledetecttimeout(0);
 	}
-#else
+#else // == 0x040000 decadriver
 	if (dat->status & DWT_INT_RFTO) {
 		dwt_setrxtimeout(0);
 	}

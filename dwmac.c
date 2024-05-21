@@ -1,6 +1,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include <deca_version.h>
 #include <deca_device_api.h>
 
 #include "dwmac.h"
@@ -68,7 +69,7 @@ bool dwmac_init(uint16_t mypanId, uint16_t myAddr, uint16_t rx_timeout_sec,
 
 	// dwmac_plat_init(rx_timeout_sec);
 
-#if DW3000_DRIVER_VERSION >= 0x060007
+#ifdef DRIVER_VERSION_HEX // >= 0x060007
 	dwt_setcallbacks(dwmac_irq_tx_done_cb, dwmac_irq_rx_ok_cb,
 					 dwmac_irq_rx_to_cb, dwmac_irq_err_cb, dwmac_irq_spi_err_cb,
 					 dwmac_irq_spi_rdy_cb, NULL);
@@ -104,7 +105,7 @@ void dwmac_set_frame_filter(void)
 
 void deca_print_irq_status(uint32_t status)
 {
-#if DW3000_DRIVER_VERSION >= 0x060007
+#ifdef DRIVER_VERSION_HEX // >= 0x060007
 	if (status & DWT_INT_TIMER1_BIT_MASK) {
 		LOG_INF("TIMER1 expiry");
 	}
@@ -611,7 +612,7 @@ void dwmac_print_event_counters(void)
 	LOG_INF("HPW   %d (half period warning)", counters.HPW);
 	LOG_INF("CRCE  %d (SPI CRC error)", counters.CRCE);
 	LOG_INF("PREJ  %d (Preamble rejection)", counters.PREJ);
-#if DW3000_DRIVER_VERSION >= 0x060007
+#ifdef DRIVER_VERSION_HEX // >= 0x060007
 	LOG_INF("SFDD  %d (SFD detection)", counters.SFDD);
 	LOG_INF("STSE  %d (STS error/warning)", counters.STSE);
 #endif
