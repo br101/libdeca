@@ -3,5 +3,5 @@
 idf_component_register(SRCS dwhw.c dwmac.c dwmac_irq.c dwphy.c dwtime.c ranging.c
                             platform/esp-idf/dwmac_task.c
                        INCLUDE_DIRS "."
-                       PRIV_INCLUDE_DIRS "platform"
+                       PRIV_INCLUDE_DIRS platform platform/esp-idf/priv
                        PRIV_REQUIRES "decadriver")
