@@ -18,7 +18,7 @@ extern bool rx_reenable;
 
 void dwmac_irq_rx_ok_cb(const dwt_cb_data_t* status)
 {
-	// DBG_UWB("*** RX %lx flags %x", status->status, status->rx_flags);
+	// DBG_UWB_IRQ("*** RX %lx flags %x", status->status, status->rx_flags);
 
 #if CONFIG_DECA_DEBUG_IRQ_TIME
 	uint64_t start_ts = deca_get_sys_time();
@@ -33,7 +33,7 @@ void dwmac_irq_rx_ok_cb(const dwt_cb_data_t* status)
 	}
 
 	if (status->datalength > DWMAC_RXBUF_LEN) {
-		LOG_ERR("Received frame too large");
+		LOG_ERR_IRQ("Received frame too large");
 		if (rx_reenable) {
 			dwt_rxenable(DWT_START_RX_IMMEDIATE);
 		}
@@ -41,7 +41,7 @@ void dwmac_irq_rx_ok_cb(const dwt_cb_data_t* status)
 	}
 	struct rxbuf* rx = &rx_buffer;
 	if (rx == NULL) {
-		LOG_ERR("RX Queue full (Data)");
+		LOG_ERR_IRQ("RX Queue full (Data)");
 		if (rx_reenable) {
 			dwt_rxenable(DWT_START_RX_IMMEDIATE);
 		}
@@ -61,7 +61,7 @@ void dwmac_irq_rx_ok_cb(const dwt_cb_data_t* status)
 		dwt_readstsstatus(&stat, 0);
 		if (stat & ~0x100) {
 			// TODO: Don't log status "Peak growth rate warning"
-			LOG_ERR("STS error STS_TOAST: %x", stat);
+			LOG_ERR_IRQ("STS error STS_TOAST: %x", stat);
 		}
 		// TODO: handle error
 	} else if (status->rx_flags & DWT_CB_DATA_RX_FLAG_ND) {
@@ -69,7 +69,7 @@ void dwmac_irq_rx_ok_cb(const dwt_cb_data_t* status)
 		int16_t stsq;
 		int sts_ok = dwt_readstsquality(&stsq);
 		if (!sts_ok) {
-			LOG_ERR("STS Qual not good %d", stsq);
+			LOG_ERR_IRQ("STS Qual not good %d", stsq);
 			// TODO: handle error
 		}
 	}
@@ -97,7 +97,7 @@ void dwmac_irq_rx_ok_cb(const dwt_cb_data_t* status)
 
 void dwmac_irq_rx_to_cb(const dwt_cb_data_t* dat)
 {
-	DBG_UWB("*** RX TO %lx", dat->status);
+	DBG_UWB_IRQ("*** RX TO %lx", dat->status);
 
 #if DW3000_DRIVER_VERSION >= 0x060007
 	/* reset timeout values to zero, if not they keep triggering */
@@ -125,7 +125,7 @@ void dwmac_irq_rx_to_cb(const dwt_cb_data_t* dat)
 
 void dwmac_irq_err_cb(const dwt_cb_data_t* dat)
 {
-	DBG_UWB("*** ERR %x %lx", dat->rx_flags, dat->status);
+	DBG_UWB_IRQ("*** ERR %x %lx", dat->rx_flags, dat->status);
 
 	if (rx_reenable || (current_tx != NULL && current_tx->resp_multi)) {
 		dwt_rxenable(DWT_START_RX_IMMEDIATE);
@@ -143,7 +143,7 @@ void dwmac_irq_err_cb(const dwt_cb_data_t* dat)
 
 void dwmac_irq_tx_done_cb(const dwt_cb_data_t* dat)
 {
-	// DBG_UWB("*** TX Done %lx", dat->status);
+	// DBG_UWB_IRQ("*** TX Done %lx", dat->status);
 	tx_irq_cnt++;
 
 	if (current_tx == NULL) {
@@ -155,11 +155,11 @@ void dwmac_irq_tx_done_cb(const dwt_cb_data_t* dat)
 
 void dwmac_irq_spi_err_cb(const dwt_cb_data_t* dat)
 {
-	LOG_ERR("*** SPI ERR");
+	LOG_ERR_IRQ("*** SPI ERR");
 }
 
 void dwmac_irq_spi_rdy_cb(const dwt_cb_data_t* dat)
 {
-	LOG_INF("*** SPI RDY");
+	LOG_INF_IRQ("*** SPI RDY");
 	// dwt_write32bitreg(SYS_STATUS_ID, SYS_STATUS_SPIRDY_BIT_MASK);
 }
