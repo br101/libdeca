@@ -73,9 +73,6 @@ void dwhw_sleep(void)
 	LOG_INF("Sleep");
 	dwchip_ready = false;
 
-	// dw1000_irq_disable();
-	// dwmac_plat_tasks_suspend();
-
 	/* pull WAKEUP line low, later we will use it for waking up */
 	dw3000_hw_wakeup_pin_low();
 
@@ -122,9 +119,6 @@ bool dwhw_wakeup(void)
 #else
 	dwt_softreset();
 #endif
-
-	// dwmac_plat_tasks_resume();
-	// dw1000_irq_enable();
 
 	dwchip_ready = true;
 	return true;
