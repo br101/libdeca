@@ -49,7 +49,7 @@ void dwmac_irq_rx_ok_cb(const dwt_cb_data_t* status)
 	}
 
 	rx->len = status->datalength;
-	rx->ts = deca_get_rx_timestamp();
+	rx->ts = dw_get_rx_timestamp();
 
 	if (!(status->rx_flags & DWT_CB_DATA_RX_FLAG_ND)
 		&& status->datalength > 0) {

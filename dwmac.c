@@ -413,7 +413,7 @@ bool dwmac_tx_raw(struct txbuf* tx)
 	if (ret != DWT_SUCCESS) {
 		LOG_ERR("TX error seq %d (%p)", tx->u.s.hdr.seqNo, tx);
 		if (tx->txtime) {
-			uint64_t systime = deca_get_sys_time();
+			uint64_t systime = dw_get_systime();
 			LOG_ERR_TS("\tSYS Time:\t", systime);
 			LOG_ERR_TS("\tTX Time:\t", tx->txtime);
 			int diff = tx->txtime - systime;

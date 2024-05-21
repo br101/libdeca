@@ -204,7 +204,7 @@ static bool twr_send_final(uint16_t ancor, uint64_t resp_rx_ts)
 		return false;
 	}
 
-	uint64_t poll_tx_ts = deca_get_tx_timestamp();
+	uint64_t poll_tx_ts = dw_get_tx_timestamp();
 
 	/* Delayed TX time has a 8ns resolution because the last 9 bit of the
 	 * DTU are ignored when programming the delayed TX time. We need to do
