@@ -1,5 +1,5 @@
-#ifndef UTIL_H
-#define UTIL_H
+#ifndef DECA_UTIL_H
+#define DECA_UTIL_H
 
 #define ADDR_FMT "%04X"
 
@@ -9,9 +9,9 @@
 		return false;                                                          \
 	}
 
-#endif
-
 #ifndef CEIL_DIV
 #define CEIL_DIV(A, B)      \
     (((A) + (B) - 1) / (B))
+#endif
+
 #endif
