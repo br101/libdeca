@@ -80,7 +80,7 @@ void dwhw_sleep(void)
 	/* Sleep configuration:
 	 * - wakeup on CS pin
 	 * - enable sleep mode */
-	dwt_configuresleep(0, DWT_SLP_EN | DWT_WAKE_CSN);
+	dwt_configuresleep(0, DWT_SLP_EN | DWT_WAKE_CSN | DWT_WAKE_WUP);
 	dwt_entersleep(DWT_DW_INIT);
 }
 
