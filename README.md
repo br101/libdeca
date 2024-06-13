@@ -70,3 +70,20 @@ void test_twr(void)
   twr_start(dst, 2, 1, res, sizeof(res), twr_done_cb, false);
 }
 ```
+
+The other side is initialized the same, but instead of `twr_start()` has to enable receive mode:
+
+```
+dwmac_set_rx_reenable(true);
+dwt_forcetrxoff();
+dwt_rxenable(DWT_START_RX_IMMEDIATE);
+```
+
+If you get error messages like
+```
+E (4983) DECA: TX error seq 0 (0x4080e1a0)
+E (4983) DECA:  SYS Time:       442f907a00
+E (4993) DECA:  TX Time:        442ea48234
+E (4993) DECA:  Diff:           ff140834 (-242 us)
+```
+the interrupt processing on your CPU is not fast enough (in this case we wanted to transmit a packet at a certain time but we were 242us too late). You can increase `TWR_PROCESSING_TIME` in `ranging.c`, but they have to be the same on **both sides** (transmit and receive). For more exact measurements it's better to have a lower number here. Also note that logging, especially in interrupt context in `dwmac_irq.c` can have an impact on the processing time, so after you are sure you get the right interrupts, it's better to disable logging there.
