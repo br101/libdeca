@@ -11,6 +11,7 @@ struct toda_sync_msg {
 } __attribute__((packed));
 
 static const char* LOG_TAG = "SYNC";
+static sync_cb_t sync_cb;
 
 bool sync_send(void)
 {
@@ -51,15 +52,24 @@ void sync_handle_msg(const struct rxbuf* rx)
 	/* Other method for skew: ask HW, but it's less exact */
 	float skewhw = dwphy_get_rx_clock_offset() * 1000000.0;
 
-#if NO_FLOAT_PRINTF
+#if DEBUG && NO_FLOAT_PRINTF
 	char fbuf[10];
 	double_to_str(skewhw, fbuf, sizeof(fbuf));
-	LOG_INF("SYNC #%d " ADDR_FMT " " DWT_FMT " " DWT_FMT " %s %s",
+	LOG_DBG("SYNC #%d " ADDR_FMT " " DWT_FMT " " DWT_FMT " %s %s",
 			mb->s.hdr.seqNo, mb->s.hdr.src, DWT_PAR(tx_ts), DWT_PAR(rx->ts),
 			double_to_sstr(skewci), fbuf);
 #else
-	LOG_INF("SYNC #%d " ADDR_FMT " " DWT_FMT " " DWT_FMT " %.2f %.2f",
+	LOG_DBG("SYNC #%d " ADDR_FMT " " DWT_FMT " " DWT_FMT " %.2f %.2f",
 			rx->u.s.hdr.seqNo, rx->u.s.hdr.src, DWT_PAR(tx_ts), DWT_PAR(rx->ts),
 			skewci, skewhw);
 #endif
+
+	if (sync_cb) {
+		sync_cb(rx->u.s.hdr.src, rx->u.s.hdr.seqNo, tx_ts, rx->ts, skewci);
+	}
+}
+
+void sync_set_handler(sync_cb_t cb)
+{
+	sync_cb = cb;
 }
