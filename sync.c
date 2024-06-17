@@ -12,6 +12,7 @@ struct toda_sync_msg {
 
 static const char* LOG_TAG = "SYNC";
 static sync_cb_t sync_cb;
+static uint8_t sync_seq;
 
 bool sync_send(void)
 {
@@ -28,6 +29,7 @@ bool sync_send(void)
 
 	dwmac_tx_prepare_prot(tx, sizeof(struct toda_sync_msg), SYNC_MSG, 0xffff);
 	dwmac_tx_set_txtime(tx, send_dtu);
+	dwmac_tx_set_seqno(tx, sync_seq++);
 
 	bool res = dwmac_tx_queue(tx);
 	LOG_TX_RES(res, "Sync #%d", tx->u.s.hdr.seqNo);
