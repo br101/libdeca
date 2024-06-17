@@ -37,6 +37,7 @@
 #define DWT_PAR(x)                                                             \
 	(uint8_t)(x >> 32), (uint8_t)(x >> 24), (uint8_t)(x >> 16),                \
 		(uint8_t)(x >> 8), (uint8_t)(x)
+#define DWT_PARA(x) x[4], x[3], x[2], x[1], x[0]
 
 #define LOG_DBG_TS(txt, t) LOG_DBG(txt DWT_FMT, DWT_PAR((t)))
 #define LOG_INF_TS(txt, t) LOG_INF(txt DWT_FMT, DWT_PAR((t)))
