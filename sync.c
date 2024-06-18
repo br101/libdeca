@@ -1,5 +1,4 @@
 #include "sync.h"
-#include "config.h"
 #include "dwmac.h"
 #include "dwphy.h"
 #include "dwtime.h"
