@@ -23,8 +23,10 @@ void blink_handle_msg(const struct rxbuf* rx)
 	LOG_DBG("BLINK #%lu " ADDR_FMT " " DWT_FMT " (%x)", msg->seq_no,
 			rx->u.s.hdr.src, DWT_PAR(rx->ts), msg->battery);
 
+	uint64_t rx_ts = dw_timestamp_extend(rx->ts);
+
 	if (blink_cb) {
-		blink_cb(rx->u.s.hdr.src, msg->seq_no, rx->ts, msg->time_ms,
+		blink_cb(rx->u.s.hdr.src, msg->seq_no, rx_ts, msg->time_ms,
 				 msg->battery);
 	}
 }

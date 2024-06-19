@@ -21,14 +21,16 @@ bool sync_send(void)
 		return false;
 
 	/* next possible sending time with some slack */
-	uint64_t send_dtu = dw_get_systime() + MS_TO_DTU(10);
-	send_dtu &= DTU_MASK;
+	uint64_t send_dtu = dw_get_systime();
+	send_dtu = dw_timestamp_extend(send_dtu);
+	send_dtu += MS_TO_DTU(10);
 
 	struct toda_sync_msg* msg = (struct toda_sync_msg*)tx->u.s.pbuf;
 	msg->tx_ts = send_dtu + DWPHY_ANTENNA_DELAY;
 	msg->seq_no = sync_seq++;
 
 	dwmac_tx_prepare_prot(tx, sizeof(struct toda_sync_msg), SYNC_MSG, 0xffff);
+	send_dtu &= DTU_MASK;
 	dwmac_tx_set_txtime(tx, send_dtu);
 
 	bool res = dwmac_tx_queue(tx);
@@ -59,8 +61,10 @@ void sync_handle_msg(const struct rxbuf* rx)
 			rx->u.s.hdr.src, DWT_PAR(msg->tx_ts), DWT_PAR(rx->ts), skewci);
 #endif
 
+	uint64_t rx_ts = dw_timestamp_extend(rx->ts);
+
 	if (sync_cb) {
-		sync_cb(rx->u.s.hdr.src, msg->seq_no, msg->tx_ts, rx->ts, skewci);
+		sync_cb(rx->u.s.hdr.src, msg->seq_no, msg->tx_ts, rx_ts, skewci);
 	}
 }
 
