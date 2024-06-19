@@ -24,7 +24,8 @@ void blink_handle_msg(const struct rxbuf* rx)
 			rx->u.s.hdr.src, DWT_PAR(rx->ts), msg->battery);
 
 	if (blink_cb) {
-		blink_cb(rx->u.s.hdr.src, msg->seq_no, rx->ts);
+		blink_cb(rx->u.s.hdr.src, msg->seq_no, rx->ts, msg->time_ms,
+				 msg->battery);
 	}
 }
 
