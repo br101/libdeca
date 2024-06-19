@@ -8,7 +8,7 @@
 
 #define SYNC_MSG 0x10
 
-typedef void (*sync_cb_t)(uint16_t src, uint8_t seq, uint64_t tx_ts,
+typedef void (*sync_cb_t)(uint64_t src, uint32_t seq, uint64_t tx_ts,
 						  uint64_t rx_ts, float skew);
 
 bool sync_send(void);

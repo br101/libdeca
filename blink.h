@@ -8,7 +8,7 @@
 
 #define BLINK_MSG 0x11
 
-typedef void (*blink_cb_t)(uint16_t src, uint8_t seq, uint64_t rx_ts);
+typedef void (*blink_cb_t)(uint64_t src, uint32_t seq, uint64_t rx_ts);
 
 bool blink_send(void);
 void blink_handle_msg(const struct rxbuf* rx);
