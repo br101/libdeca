@@ -1,6 +1,9 @@
 #include <string.h> // memcpy
 
 #include "dwtime.h"
+#include "log.h"
+
+static uint64_t dw_last_ts;
 
 uint64_t dw_timestamp_u64(uint8_t ts_tab[5])
 {
@@ -42,5 +45,14 @@ uint64_t dw_get_buf_timestamp(const uint8_t* ts_field)
 {
 	uint64_t ts = 0;
 	memcpy(&ts, ts_field, 5);
+	return ts;
+}
+
+uint64_t dw_timestamp_extend(uint64_t ts)
+{
+	while (ts < dw_last_ts) {
+		ts += (DTU_MASK + 1);
+	}
+	dw_last_ts = ts;
 	return ts;
 }

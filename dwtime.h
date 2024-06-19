@@ -52,5 +52,7 @@ uint64_t dw_get_rx_timestamp(void);
 uint64_t dw_get_systime(void);
 void dw_set_buf_timestamp(uint8_t* ts_field, uint64_t ts);
 uint64_t dw_get_buf_timestamp(const uint8_t* ts_field);
+/** extend timestamp in case of overflow */
+uint64_t dw_timestamp_extend(uint64_t ts);
 
 #endif
