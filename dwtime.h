@@ -33,6 +33,7 @@
 
 #define DTU_MASK 0xFFFFFFFFFFL
 
+#define TS_FMT	"%016llx"
 #define DWT_FMT "%02x%02x%02x%02x%02x"
 #define DWT_PAR(x)                                                             \
 	(uint8_t)(x >> 32), (uint8_t)(x >> 24), (uint8_t)(x >> 16),                \

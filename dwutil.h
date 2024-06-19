@@ -1,7 +1,8 @@
 #ifndef DECA_UTIL_H
 #define DECA_UTIL_H
 
-#define ADDR_FMT "%04X"
+#define ADDR_FMT  "%04X"
+#define LADDR_FMT "[%016llX]"
 
 #define ASSERT_RET(cond)                                                       \
 	if (!(cond)) {                                                             \
@@ -10,8 +11,7 @@
 	}
 
 #ifndef CEIL_DIV
-#define CEIL_DIV(A, B)      \
-    (((A) + (B) - 1) / (B))
+#define CEIL_DIV(A, B) (((A) + (B) - 1) / (B))
 #endif
 
 #endif
