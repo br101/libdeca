@@ -16,7 +16,7 @@ static const char* LOG_TAG = "BLINK";
 static blink_cb_t blink_cb;
 static uint32_t blink_seq;
 
-void blink_handle_msg(const struct rxbuf* rx)
+void blink_handle_msg_short(const struct rxbuf* rx)
 {
 	struct prot_short* ps = (struct prot_short*)rx->buf;
 	const struct blink_msg* msg = (struct blink_msg*)ps->pbuf;
@@ -31,7 +31,7 @@ void blink_handle_msg(const struct rxbuf* rx)
 	}
 }
 
-bool blink_send(void)
+bool blink_send_short(void)
 {
 	struct txbuf* tx = dwmac_txbuf_get();
 	if (tx == NULL)

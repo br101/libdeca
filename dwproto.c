@@ -29,12 +29,19 @@ void* dwprot_short_prepare(struct txbuf* tx, size_t len, uint8_t func,
 
 void dwprot_rx_handler(const struct rxbuf* rx)
 {
+	if (rx->len < DWMAC_PROTO_MIN_LEN) {
+		return; // too short
+	}
+
 	const struct prot_short* ps = (const struct prot_short*)rx->buf;
-	if ((ps->func & DWMAC_PROTO_MSG_MASK) == TWR_MSG_GROUP) {
-		twr_handle_message(rx);
-	} else if (ps->func == BLINK_MSG) {
-		blink_handle_msg(rx);
-	} else if (ps->func == SYNC_MSG) {
-		sync_handle_msg(rx);
+
+	if (ps->hdr.fc & (MAC154_FC_TYPE_DATA | MAC154_FC_SHORT)) {
+		if ((ps->func & DWMAC_PROTO_MSG_MASK) == TWR_MSG_GROUP) {
+			twr_handle_message_short(rx);
+		} else if (ps->func == BLINK_MSG) {
+			blink_handle_msg_short(rx);
+		} else if (ps->func == SYNC_MSG) {
+			sync_handle_msg_short(rx);
+		}
 	}
 }

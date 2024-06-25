@@ -15,7 +15,7 @@ static const char* LOG_TAG = "SYNC";
 static sync_cb_t sync_cb;
 static uint32_t sync_seq;
 
-bool sync_send(void)
+bool sync_send_short(void)
 {
 	struct txbuf* tx = dwmac_txbuf_get();
 	if (tx == NULL)
@@ -39,7 +39,7 @@ bool sync_send(void)
 	return res;
 }
 
-void sync_handle_msg(const struct rxbuf* rx)
+void sync_handle_msg_short(const struct rxbuf* rx)
 {
 	struct prot_short* ps = (struct prot_short*)rx->buf;
 

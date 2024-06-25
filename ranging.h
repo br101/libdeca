@@ -19,7 +19,7 @@ struct twr_res {
 
 bool twr_start(const uint16_t dst[], size_t len, uint16_t cnum, void* res,
 			   size_t res_len, void (*done_handler)(int res), bool ss);
-void twr_handle_message(const struct rxbuf* rx);
+void twr_handle_message_short(const struct rxbuf* rx);
 void twr_handle_timeout(uint32_t status);
 bool twr_in_progress(void);
 void twr_cancel(void);
