@@ -1,12 +1,13 @@
 
 #include <string.h>
 
-#include <deca_version.h>
 #include <deca_device_api.h>
+#include <deca_version.h>
 
 #include "dwmac.h"
 #include "dwtime.h"
 #include "log.h"
+#include "mac802154.h"
 #include "platform/dwmac_task.h"
 
 static const char* LOG_TAG = "DECA";
@@ -54,7 +55,7 @@ void dwmac_irq_rx_ok_cb(const dwt_cb_data_t* status)
 
 	if (!(status->rx_flags & DWT_CB_DATA_RX_FLAG_ND)
 		&& status->datalength > 0) {
-		dwt_readrxdata(rx->u.buf, status->datalength, 0);
+		dwt_readrxdata(rx->buf, status->datalength, 0);
 	}
 
 	if (status->rx_flags & DWT_CB_DATA_RX_FLAG_CPER) {
@@ -83,7 +84,7 @@ void dwmac_irq_rx_ok_cb(const dwt_cb_data_t* status)
 	dwt_readdiagnostics(&rx->diag);
 #endif
 
-	if (rx_reenable || rx->u.s.hdr.fc & MAC154_FC_FRAME_PEND
+	if (rx_reenable || rx->buf[0] & MAC154_FC_FRAME_PEND
 		|| (current_tx != NULL && current_tx->resp_multi)) {
 		dwt_rxenable(DWT_START_RX_IMMEDIATE);
 	}

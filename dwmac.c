@@ -1,13 +1,14 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include <deca_version.h>
 #include <deca_device_api.h>
+#include <deca_version.h>
 
 #include "dwmac.h"
 #include "dwphy.h"
 #include "dwtime.h"
 #include "dwutil.h"
+#include "mac802154.h"
 #include "platform/dwmac_task.h"
 
 #include "log.h"
@@ -18,7 +19,6 @@ static const char* LOG_TAG = "DECA";
 
 static uint16_t panId;
 static uint16_t macAddr;
-static uint8_t seqNo;
 
 static deca_rx_cb dwmac_rx_cb = NULL;
 static deca_to_cb dwmac_to_cb = NULL;
@@ -47,7 +47,6 @@ bool dwmac_init(uint16_t mypanId, uint16_t myAddr, uint16_t rx_timeout_sec,
 
 	panId = mypanId;
 	macAddr = myAddr;
-	seqNo = 0;
 	rx_reenable = false;
 	dwmac_rx_cb = rx_cb;
 	dwmac_to_cb = to_cb;
@@ -252,34 +251,11 @@ void dwmac_tx_prepare_null(struct txbuf* tx)
 	tx->to_cb = NULL;
 }
 
-/* len is user protocol length without headers */
-void dwmac_tx_prepare_prot(struct txbuf* tx, size_t len, uint8_t func,
-						   uint16_t dst)
-{
-	dwmac_tx_prepare_null(tx);
-	tx->len = DWMAC_PROTO_MIN_LEN + len;
-
-	/* prepare header */
-	tx->u.s.hdr.fc = MAC154_FC_TYPE_DATA | MAC154_FC_SHORT;
-	tx->u.s.hdr.src = macAddr;
-	tx->u.s.hdr.dst = dst;
-	tx->u.s.hdr.panId = panId;
-	tx->u.s.hdr.seqNo = 0; // will be set when actually sent
-
-	tx->u.s.func = func;
-}
-
 /* len is without FCS */
 void dwmac_tx_prepare(struct txbuf* tx, size_t len)
 {
 	dwmac_tx_prepare_null(tx);
 	tx->len = len + MAC154_FCS_LEN;
-}
-
-void dwmac_tx_request_ack(struct txbuf* tx)
-{
-	(void)tx;
-	LOG_ERR("ACKs disabled");
 }
 
 void dwmac_tx_set_ranging(struct txbuf* tx)
@@ -342,22 +318,6 @@ void dwmac_tx_set_txtime(struct txbuf* tx, uint64_t time)
 	// TODO: tx_timeout
 }
 
-/** this sets seqno early in case we need it; 0 means "auto" */
-void dwmac_tx_set_seqno(struct txbuf* tx, uint8_t seq)
-{
-	tx->u.s.hdr.seqNo = seq ? seq : seqNo++;
-	/* special handling to avoid 0 as seqno - it is used in TX functions
-	 * to set and increase seqNo */
-	if (seq == 0 && seqNo == 1) {
-		tx->u.s.hdr.seqNo = seqNo++;
-	}
-}
-
-void dwmac_tx_set_frame_pending(struct txbuf* tx)
-{
-	tx->u.s.hdr.fc |= MAC154_FC_FRAME_PEND;
-}
-
 /** returns txbuf when done */
 bool dwmac_tx_queue(struct txbuf* tx)
 {
@@ -376,17 +336,13 @@ bool dwmac_tx_raw(struct txbuf* tx)
 {
 	int ret;
 
-	if (tx->len > 0 && tx->u.s.hdr.seqNo == 0) {
-		tx->u.s.hdr.seqNo = seqNo++;
-	}
-
 	decaIrqStatus_t stat = decamutexon();
 
 	/* make sure we're out of RX mode before initiating TX */
 	dwt_forcetrxoff();
 
 	if (tx->len > 0) {
-		ret = dwt_writetxdata(tx->len, tx->u.buf, 0);
+		ret = dwt_writetxdata(tx->len, tx->buf, 0);
 		if (ret != DWT_SUCCESS) {
 			return false;
 		}
@@ -412,7 +368,7 @@ bool dwmac_tx_raw(struct txbuf* tx)
 	// plat_led_act_trigger();
 
 	if (ret != DWT_SUCCESS) {
-		LOG_ERR("TX error seq %d (%p)", tx->u.s.hdr.seqNo, tx);
+		LOG_ERR("TX error (%p)", tx);
 		if (tx->txtime) {
 			uint64_t systime = dw_get_systime();
 			LOG_ERR_TS("\tSYS Time:\t", systime);
@@ -429,10 +385,10 @@ bool dwmac_tx_raw(struct txbuf* tx)
 #if CONFIG_DECA_DEBUG_TX_TIME
 	if (tx->txtime) {
 		uint64_t systime = deca_get_sys_time();
-		LOG_DBG("Delayed TX in %d us seq %d (%p)",
-				(int)DTU_TO_US(tx->txtime - systime), tx->u.s.hdr.seqNo, tx);
+		LOG_DBG("Delayed TX in %d us (%p)",
+				(int)DTU_TO_US(tx->txtime - systime), tx);
 	} else {
-		LOG_DBG("TX seq %d (%p)", tx->u.s.hdr.seqNo, tx);
+		LOG_DBG("TX (%p)", tx);
 	}
 #endif
 
@@ -621,4 +577,9 @@ void dwmac_print_event_counters(void)
 uint16_t dwmac_get_mac16(void)
 {
 	return macAddr;
+}
+
+uint16_t dwmac_get_panid(void)
+{
+	return panId;
 }

@@ -130,4 +130,6 @@ struct mac154_blink_short {
 #define MAC154_FC_BLINK_SHORT                                                  \
 	(MAC154_FC_TYPE_MULTIPURPOSE | MAC154_FC_MULTI_SRC_ADDR_SHORT)
 
+void mac154_set_frame_pending(uint8_t* buf);
+
 #endif

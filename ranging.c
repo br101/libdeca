@@ -6,12 +6,12 @@
 #include "dwhw.h"
 #include "dwmac.h"
 #include "dwphy.h"
+#include "dwproto.h"
 #include "dwtime.h"
 #include "dwutil.h"
+#include "log.h"
 #include "mac802154.h"
 #include "ranging.h"
-
-#include "log.h"
 
 static const char* LOG_TAG = "TWR";
 
@@ -86,8 +86,8 @@ static bool twr_send_poll(uint16_t ancor)
 	if (tx == NULL)
 		return false;
 
-	dwmac_tx_prepare_prot(tx, 0, single_sided ? TWR_MSG_SSPOLL : TWR_MSG_POLL,
-						  ancor);
+	dwprot_short_prepare(tx, 0, single_sided ? TWR_MSG_SSPOLL : TWR_MSG_POLL,
+						 ancor);
 	dwmac_tx_set_ranging(tx);
 	dwmac_tx_expect_response(tx, twr_rx_delay);
 	dwmac_tx_set_preamble_timeout(tx, twr_pto);
@@ -116,7 +116,7 @@ static bool twr_send_response(uint16_t tag, uint64_t poll_rx_ts)
 	last_poll_rx_ts = poll_rx_ts;
 	uint64_t resp_tx_time = poll_rx_ts + twr_delay_dtu;
 
-	dwmac_tx_prepare_prot(tx, 0, TWR_MSG_RESP, tag);
+	dwprot_short_prepare(tx, 0, TWR_MSG_RESP, tag);
 	dwmac_tx_set_ranging(tx);
 	dwmac_tx_expect_response(tx, twr_rx_delay);
 	dwmac_tx_set_preamble_timeout(tx, twr_pto);
@@ -151,9 +151,8 @@ static bool twr_send_ss_response(uint16_t tag, uint64_t poll_rx_ts)
 	 * the same in the calculated TX time */
 	uint64_t resp_tx_time = (poll_rx_ts + twr_delay_dtu) & DTU_DELAYEDTRX_MASK;
 
-	dwmac_tx_prepare_prot(tx, sizeof(struct twr_msg_ss_resp), TWR_MSG_SSRESP,
-						  tag);
-	struct twr_msg_ss_resp* msg = (struct twr_msg_ss_resp*)tx->u.s.pbuf;
+	struct twr_msg_ss_resp* msg = dwprot_short_prepare(
+		tx, sizeof(struct twr_msg_ss_resp), TWR_MSG_SSRESP, tag);
 	msg->poll_rx_ts = (uint32_t)poll_rx_ts;
 	msg->resp_tx_ts = (uint32_t)(resp_tx_time + DWPHY_ANTENNA_DELAY);
 	dwmac_tx_set_ranging(tx);
@@ -176,7 +175,8 @@ static bool twr_send_ss_response(uint16_t tag, uint64_t poll_rx_ts)
 
 static void twr_handle_ss_response(const struct rxbuf* rx)
 {
-	struct twr_msg_ss_resp* msg = (struct twr_msg_ss_resp*)rx->u.s.pbuf;
+	const struct prot_short* ps = (const struct prot_short*)rx->buf;
+	struct twr_msg_ss_resp* msg = (struct twr_msg_ss_resp*)ps->pbuf;
 	uint32_t poll_tx_ts = dwt_readtxtimestamplo32();
 	uint32_t resp_rx_ts = (uint32_t)rx->ts;
 
@@ -193,7 +193,7 @@ static void twr_handle_ss_response(const struct rxbuf* rx)
 	int dist = TIME_TO_DISTANCE(tof) * 100;
 
 	dist = twr_fixup_distance(dist);
-	twr_handle_result(dist, twr_cnum, rx->u.s.hdr.src, false, true);
+	twr_handle_result(dist, twr_cnum, ps->hdr.src, false, true);
 }
 
 /* TAG -> ANCOR */
@@ -215,13 +215,12 @@ static bool twr_send_final(uint16_t ancor, uint64_t resp_rx_ts)
 	 * antenna delay. */
 	uint64_t final_tx_ts = (final_tx_time + DWPHY_ANTENNA_DELAY) & DTU_MASK;
 
-	struct twr_msg_final* final_msg = (struct twr_msg_final*)tx->u.s.pbuf;
+	struct twr_msg_final* final_msg = dwprot_short_prepare(
+		tx, sizeof(struct twr_msg_final), TWR_MSG_FINA, ancor);
 	final_msg->cnum = twr_cnum;
 	final_msg->round = resp_rx_ts - poll_tx_ts;
 	final_msg->delay = final_tx_ts - resp_rx_ts;
 
-	dwmac_tx_prepare_prot(tx, sizeof(struct twr_msg_final), TWR_MSG_FINA,
-						  ancor);
 	dwmac_tx_set_ranging(tx);
 	dwmac_tx_set_txtime(tx, final_tx_time);
 #if TWR_SEND_REPORT
@@ -343,7 +342,7 @@ int twr_distance_calculation(uint32_t poll_rx_ts, uint32_t resp_tx_ts,
 }
 
 /* ANCOR */
-static void twr_handle_final(const union macbuf* mb, uint64_t final_rx_ts,
+static void twr_handle_final(const struct prot_short* ps, uint64_t final_rx_ts,
 							 size_t len)
 {
 	expected_msg = 0;
@@ -353,19 +352,19 @@ static void twr_handle_final(const union macbuf* mb, uint64_t final_rx_ts,
 		return;
 	}
 
-	DBG_UWB("Received Final from " ADDR_FMT, mb->s.hdr.src);
+	DBG_UWB("Received Final from " ADDR_FMT, ps->hdr.src);
 
-	struct twr_msg_final* msg_final = (struct twr_msg_final*)mb->s.pbuf;
+	struct twr_msg_final* msg_final = (struct twr_msg_final*)ps->pbuf;
 	uint32_t resp_tx_ts = dwt_readtxtimestamplo32();
 
 	int dist
 		= twr_distance_calculation(last_poll_rx_ts, resp_tx_ts, final_rx_ts,
 								   msg_final->round, msg_final->delay);
 	dist = twr_fixup_distance(dist);
-	twr_handle_result(dist, msg_final->cnum, mb->s.hdr.src, false, false);
+	twr_handle_result(dist, msg_final->cnum, ps->hdr.src, false, false);
 
 #if TWR_SEND_REPORT
-	twr_send_report(mb->s.hdr.src, dist, final_rx_ts);
+	twr_send_report(ps->hdr.src, dist, final_rx_ts);
 #endif
 }
 
@@ -473,13 +472,13 @@ static bool twr_send_report(uint16_t tag, uint16_t dist, uint64_t final_rx_ts)
 		return false;
 	}
 
-	struct twr_msg_report* msg = (struct twr_msg_report*)tx->u.s.pbuf;
+	expected_msg = 0;
+
+	struct twr_msg_report* msg = dwprot_short_prepare(
+		tx, sizeof(struct twr_msg_report), TWR_MSG_REPO, tag);
 	msg->cnum = twr_cnum;
 	msg->dist = dist;
 
-	expected_msg = 0;
-
-	dwmac_tx_prepare_prot(tx, sizeof(struct twr_msg_report), TWR_MSG_REPO, tag);
 	uint64_t rep_tx_time = (final_rx_ts + twr_delay_dtu) & DTU_DELAYEDTRX_MASK;
 	dwmac_tx_set_txtime(tx, rep_tx_time);
 
@@ -496,14 +495,14 @@ static void twr_handle_report(const struct rxbuf* rx)
 		return;
 	}
 
-	const struct twr_msg_report* msg
-		= (const struct twr_msg_report*)rx->u.s.pbuf;
+	const struct prot_short* ps = (const struct prot_short*)rx->buf;
+	const struct twr_msg_report* msg = (const struct twr_msg_report*)ps->pbuf;
 
 	/* no more messages expected */
 	expected_msg = 0;
 
 	/* single distance back to me (tag) */
-	twr_handle_result(msg->dist, twr_cnum, rx->u.s.hdr.src, true, true);
+	twr_handle_result(msg->dist, twr_cnum, ps->hdr.src, true, true);
 }
 
 /*
@@ -556,36 +555,37 @@ static void twr_sequence_next(void)
 
 void twr_handle_message(const struct rxbuf* rx)
 {
+	struct prot_short* ps = (struct prot_short*)rx->buf;
+
 	/* drop unexpected messages, but always allow POLL in case the sender needs
 	 * to retry */
-	if (expected_msg != 0 && rx->u.s.func != expected_msg
-		&& rx->u.s.func != TWR_MSG_POLL) {
-		LOG_ERR("Drop unexpected MSG %X from " ADDR_FMT, rx->u.s.func,
-				rx->u.s.hdr.src);
+	if (expected_msg != 0 && ps->func != expected_msg
+		&& ps->func != TWR_MSG_POLL) {
+		LOG_ERR("Drop unexpected MSG %X from " ADDR_FMT, ps->func, ps->hdr.src);
 		return;
 	}
 
-	switch (rx->u.s.func) {
+	switch (ps->func) {
 	case TWR_MSG_POLL:
-		twr_send_response(rx->u.s.hdr.src, rx->ts);
+		twr_send_response(ps->hdr.src, rx->ts);
 		break;
 	case TWR_MSG_RESP:
-		twr_send_final(rx->u.s.hdr.src, rx->ts);
+		twr_send_final(ps->hdr.src, rx->ts);
 		break;
 	case TWR_MSG_FINA:
-		twr_handle_final(&rx->u, rx->ts, rx->len);
+		twr_handle_final(ps, rx->ts, rx->len);
 		break;
 	case TWR_MSG_REPO:
 		twr_handle_report(rx);
 		break;
 	case TWR_MSG_SSPOLL:
-		twr_send_ss_response(rx->u.s.hdr.src, rx->ts);
+		twr_send_ss_response(ps->hdr.src, rx->ts);
 		break;
 	case TWR_MSG_SSRESP:
 		twr_handle_ss_response(rx);
 		break;
 	default:
-		LOG_ERR("Unknown MSG %X from " ADDR_FMT, rx->u.s.func, rx->u.s.hdr.src);
+		LOG_ERR("Unknown MSG %X from " ADDR_FMT, ps->func, ps->hdr.src);
 	}
 }
 

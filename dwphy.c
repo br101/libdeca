@@ -1,13 +1,14 @@
 #include <stdlib.h> // abs
 
-#include <deca_version.h>
 #include <deca_device_api.h>
+#include <deca_version.h>
 #ifdef DW3000_DRIVER_VERSION // == 0x040000
 #include <deca_regs.h>
 #endif
 
 #include "dwmac.h"
 #include "dwphy.h"
+#include "dwproto.h"
 
 #include "log.h"
 
