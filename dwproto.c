@@ -7,7 +7,7 @@
 
 #include "log.h"
 
-static const char* LOG_TAG = "PROTO";
+// static const char* LOG_TAG = "PROTO";
 static uint8_t seqNo;
 
 /* len is user protocol length without headers */

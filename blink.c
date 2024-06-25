@@ -63,7 +63,7 @@ void blink_handle_msg_long(const struct rxbuf* rx)
 	}
 
 	LOG_DBG("BLINK LONG #%lu " LADDR_FMT " " DWT_FMT " (%x)", msg->seq_no,
-			bh->src, DWT_PAR(rx->ts), msg->battery);
+			LADDR_PAR(bh->src), DWT_PAR(rx->ts), msg->battery);
 
 	uint64_t rx_ts = dw_timestamp_extend(rx->ts);
 
