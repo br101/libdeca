@@ -34,6 +34,7 @@ void dwprot_rx_handler(const struct rxbuf* rx)
 	}
 
 	const struct prot_short* ps = (const struct prot_short*)rx->buf;
+	const struct mac154_hdr_blink_long* bh = (const struct mac154_hdr_blink_long*)rx->buf;
 
 	if (ps->hdr.fc & (MAC154_FC_TYPE_DATA | MAC154_FC_SHORT)) {
 		if ((ps->func & DWMAC_PROTO_MSG_MASK) == TWR_MSG_GROUP) {
@@ -43,5 +44,7 @@ void dwprot_rx_handler(const struct rxbuf* rx)
 		} else if (ps->func == SYNC_MSG) {
 			sync_handle_msg_short(rx);
 		}
+	} else if (bh->fc == MAC154_FC_BLINK_LONG) {
+		blink_handle_msg_long(rx);
 	}
 }

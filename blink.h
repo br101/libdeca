@@ -13,6 +13,8 @@ typedef void (*blink_cb_t)(uint64_t src, uint32_t seq, uint64_t rx_ts,
 
 bool blink_send_short(void);
 void blink_handle_msg_short(const struct rxbuf* rx);
+bool blink_send_long(uint64_t src);
+void blink_handle_msg_long(const struct rxbuf* rx);
 void blink_set_handler(blink_cb_t cb);
 
 #endif

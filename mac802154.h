@@ -127,8 +127,17 @@ struct mac154_blink_short {
 	uint16_t fcs;
 } __attribute__((packed));
 
+struct mac154_hdr_blink_long {
+       uint8_t fc;
+	   uint8_t seqNo;
+       uint64_t src;
+} __attribute__((packed));
+
 #define MAC154_FC_BLINK_SHORT                                                  \
-	(MAC154_FC_TYPE_MULTIPURPOSE | MAC154_FC_MULTI_SRC_ADDR_SHORT)
+	(MAC154_FC_TYPE_MULTI | MAC154_FC_MULTI_SRC_ADDR_SHORT)
+
+#define MAC154_FC_BLINK_LONG                                                   \
+       (MAC154_FC_TYPE_MULTI | MAC154_FC_MULTI_SRC_ADDR_LONG)
 
 void mac154_set_frame_pending(uint8_t* buf);
 
