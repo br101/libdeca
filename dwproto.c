@@ -5,6 +5,9 @@
 #include <ranging.h>
 #include <sync.h>
 
+#include "log.h"
+
+static const char* LOG_TAG = "PROTO";
 static uint8_t seqNo;
 
 /* len is user protocol length without headers */
@@ -29,14 +32,17 @@ void* dwprot_short_prepare(struct txbuf* tx, size_t len, uint8_t func,
 
 void dwprot_rx_handler(const struct rxbuf* rx)
 {
+	// LOG_INF("RX %d fc %x", rx->len, rx->buf[0]);
+
 	if (rx->len < DWMAC_PROTO_MIN_LEN) {
 		return; // too short
 	}
 
 	const struct prot_short* ps = (const struct prot_short*)rx->buf;
-	const struct mac154_hdr_blink_long* bh = (const struct mac154_hdr_blink_long*)rx->buf;
+	const struct mac154_hdr_blink_long* bh
+		= (const struct mac154_hdr_blink_long*)rx->buf;
 
-	if (ps->hdr.fc & (MAC154_FC_TYPE_DATA | MAC154_FC_SHORT)) {
+	if (ps->hdr.fc == (MAC154_FC_TYPE_DATA | MAC154_FC_SHORT)) {
 		if ((ps->func & DWMAC_PROTO_MSG_MASK) == TWR_MSG_GROUP) {
 			twr_handle_message_short(rx);
 		} else if (ps->func == BLINK_MSG) {
