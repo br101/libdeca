@@ -31,6 +31,12 @@ Just add the necessary files to your Makefile or IDE. Define the log functions i
 Here is an example for initializing the library and using it for TWR:
 
 ```
+#include "dw3000_hw.h"
+#include "dwhw.h"
+#include "dwmac.h"
+#include "dwphy.h"
+#include "dwproto.h"
+
 static struct twr_res res[2];
 
 static void twr_done_cb(int num)
@@ -39,13 +45,6 @@ static void twr_done_cb(int num)
 		LOG_INF("TWR Done %04X: %d cm", res[0].addr, res[0].dist);
 	} else {
 		LOG_ERR("Unexpected TWR result %d", num);
-	}
-}
-
-static void twr_rx_handler(const struct rxbuf* rx)
-{
-	if ((rx->u.s.func & 0xF0) == 0x20) {
-		twr_handle_message(rx);
 	}
 }
 
@@ -60,7 +59,7 @@ void test_twr(void)
   dwhw_init();
   dwphy_config();
   dwphy_set_antenna_delay(DWPHY_ANTENNA_DELAY);
-  dwmac_init(PANID, MAC16, 10, twr_rx_handler, your_timeout_handler,
+  dwmac_init(PANID, MAC16, 10, dwprot_rx_handler, your_timeout_handler,
   			     your_error_handler);
   dwmac_set_frame_filter();
   twr_init(DWT_BR_6M8, DWT_PLEN_64, DWT_PRF_64M);

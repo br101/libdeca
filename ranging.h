@@ -10,15 +10,15 @@
 #define TWR_MAX_DST		 10
 #define TWR_FAILED_VALUE UINT16_MAX
 #define TWR_OK_VALUE	 (UINT16_MAX - 1)
+#define TWR_MSG_GROUP	 0x20
 
 struct twr_res {
 	uint16_t addr;
 	uint16_t dist;
 };
 
-bool twr_start(const uint16_t dst[], size_t len, uint16_t cnum,
-			   void* res, size_t res_len, void (*done_handler)(int res),
-			   bool ss);
+bool twr_start(const uint16_t dst[], size_t len, uint16_t cnum, void* res,
+			   size_t res_len, void (*done_handler)(int res), bool ss);
 void twr_handle_message(const struct rxbuf* rx);
 void twr_handle_timeout(uint32_t status);
 bool twr_in_progress(void);
