@@ -84,6 +84,17 @@
 	(MAC154_FC_DST_ADDR_SHORT | MAC154_FC_SRC_ADDR_SHORT                       \
 	 | MAC154_FC_PAN_ID_COMP)
 
+/* long frame with only source address */
+#define MAC154_FC_LONG_SRC                                                     \
+	(MAC154_FC_VERSION_2 | MAC154_FC_SRC_ADDR_LONG | MAC154_FC_SEQ_SUPP        \
+	 | MAC154_FC_PAN_ID_COMP)
+
+#define MAC154_FC_BLINK_SHORT                                                  \
+	(MAC154_FC_TYPE_MULTI | MAC154_FC_MULTI_SRC_ADDR_SHORT)
+
+#define MAC154_FC_BLINK_LONG                                                   \
+	(MAC154_FC_TYPE_MULTI | MAC154_FC_MULTI_SRC_ADDR_LONG)
+
 #define MAC154_FCS_LEN 2
 
 #define MAC154_IE 0
@@ -128,16 +139,15 @@ struct mac154_blink_short {
 } __attribute__((packed));
 
 struct mac154_hdr_blink_long {
-       uint8_t fc;
-	   uint8_t seqNo;
-       uint64_t src;
+	uint8_t fc;
+	uint8_t seqNo;
+	uint64_t src;
 } __attribute__((packed));
 
-#define MAC154_FC_BLINK_SHORT                                                  \
-	(MAC154_FC_TYPE_MULTI | MAC154_FC_MULTI_SRC_ADDR_SHORT)
-
-#define MAC154_FC_BLINK_LONG                                                   \
-       (MAC154_FC_TYPE_MULTI | MAC154_FC_MULTI_SRC_ADDR_LONG)
+struct mac154_hdr_long_src {
+	uint16_t fc;
+	uint64_t src;
+} __attribute__((packed));
 
 void mac154_set_frame_pending(uint8_t* buf);
 

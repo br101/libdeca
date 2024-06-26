@@ -70,6 +70,64 @@ void sync_handle_msg_short(const struct rxbuf* rx)
 	}
 }
 
+bool sync_send_long(uint64_t src)
+{
+	struct txbuf* tx = dwmac_txbuf_get();
+	if (tx == NULL)
+		return false;
+
+	/* next possible sending time with some slack */
+	uint64_t send_dtu = dw_get_systime();
+	send_dtu = dw_timestamp_extend(send_dtu);
+	send_dtu += MS_TO_DTU(10);
+
+	struct toda_sync_msg* msg = dwprot_long_src_prepare(
+		tx, sizeof(struct toda_sync_msg), SYNC_MSG, src);
+	msg->tx_ts = send_dtu + DWPHY_ANTENNA_DELAY;
+	msg->seq_no = sync_seq++;
+
+	send_dtu &= DTU_MASK;
+	dwmac_tx_set_txtime(tx, send_dtu);
+
+	bool res = dwmac_tx_queue(tx);
+	LOG_TX_RES(res, "Sync long #%lu", msg->seq_no);
+	return res;
+}
+
+void sync_handle_msg_long(const struct rxbuf* rx)
+{
+	struct prot_long_src* pl = (struct prot_long_src*)rx->buf;
+
+	const struct toda_sync_msg* msg = (struct toda_sync_msg*)pl->pbuf;
+	// LOG_DBGL_TS(DDL_TDOA, "\tTX TS*: ", msg->tx_ts);
+	// LOG_DBGL_TS(DDL_TDOA, "\tRX TS: ", rx->ts);
+
+	LOG_DBG("Received SYNC %lu from " LADDR_FMT, msg->seq_no,
+			LADDR_PAR(pl->hdr.src));
+
+#if DWMAC_USE_CARRIERINTEG
+	float skewci = dwphy_get_rx_clock_offset_ci(rx->ci) * -1.0;
+#else
+	float skewci = 0.0;
+#endif
+
+#if DEBUG && NO_FLOAT_PRINTF
+	LOG_DBG("SYNC #%d " ADDR_FMT " " DWT_FMT " " DWT_FMT " %s %s",
+			mb->s.hdr.seqNo, mb->s.hdr.src, DWT_PAR(tx_ts), DWT_PAR(rx->ts),
+			double_to_sstr(skewci));
+#else
+	LOG_DBG("SYNC LONG #%lu " LADDR_FMT " " DWT_FMT " " DWT_FMT " %.2f",
+			msg->seq_no, LADDR_PAR(pl->hdr.src), DWT_PAR(msg->tx_ts),
+			DWT_PAR(rx->ts), skewci);
+#endif
+
+	uint64_t rx_ts = dw_timestamp_extend(rx->ts);
+
+	if (sync_cb) {
+		sync_cb(pl->hdr.src, msg->seq_no, msg->tx_ts, rx_ts, skewci);
+	}
+}
+
 void sync_set_handler(sync_cb_t cb)
 {
 	sync_cb = cb;

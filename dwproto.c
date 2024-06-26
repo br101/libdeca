@@ -30,19 +30,37 @@ void* dwprot_short_prepare(struct txbuf* tx, size_t len, uint8_t func,
 	return tx->buf + sizeof(struct prot_short);
 }
 
+/* len is user protocol length without headers */
+void* dwprot_long_src_prepare(struct txbuf* tx, size_t len, uint8_t func,
+							  uint64_t src)
+{
+	dwmac_tx_prepare_null(tx);
+	tx->len = DWMAC_PROTO_LONG_LEN + len;
+
+	struct prot_long_src* pl = (struct prot_long_src*)tx->buf;
+	/* prepare header */
+	pl->hdr.fc = MAC154_FC_TYPE_DATA | MAC154_FC_LONG_SRC;
+	pl->hdr.src = src;
+
+	pl->func = func;
+
+	return tx->buf + sizeof(struct prot_long_src);
+}
+
 void dwprot_rx_handler(const struct rxbuf* rx)
 {
-	// LOG_INF("RX %d fc %x", rx->len, rx->buf[0]);
+	uint16_t fc = *(uint16_t*)rx->buf;
+	// LOG_INF("RX len %d FC 0x%04X", rx->len, fc);
 
 	if (rx->len < DWMAC_PROTO_MIN_LEN) {
 		return; // too short
 	}
 
-	const struct prot_short* ps = (const struct prot_short*)rx->buf;
-	const struct mac154_hdr_blink_long* bh
-		= (const struct mac154_hdr_blink_long*)rx->buf;
-
-	if (ps->hdr.fc == (MAC154_FC_TYPE_DATA | MAC154_FC_SHORT)) {
+	if ((uint8_t)fc == MAC154_FC_BLINK_LONG) {
+		// handle 1 byte FC for blink first!
+		blink_handle_msg_long(rx);
+	} else if (fc == (MAC154_FC_TYPE_DATA | MAC154_FC_SHORT)) {
+		const struct prot_short* ps = (const struct prot_short*)rx->buf;
 		if ((ps->func & DWMAC_PROTO_MSG_MASK) == TWR_MSG_GROUP) {
 			twr_handle_message_short(rx);
 		} else if (ps->func == BLINK_MSG) {
@@ -50,7 +68,10 @@ void dwprot_rx_handler(const struct rxbuf* rx)
 		} else if (ps->func == SYNC_MSG) {
 			sync_handle_msg_short(rx);
 		}
-	} else if (bh->fc == MAC154_FC_BLINK_LONG) {
-		blink_handle_msg_long(rx);
+	} else if (fc == (MAC154_FC_TYPE_DATA | MAC154_FC_LONG_SRC)) {
+		const struct prot_long_src* pl = (const struct prot_long_src*)rx->buf;
+		if (pl->func == SYNC_MSG) {
+			sync_handle_msg_long(rx);
+		}
 	}
 }
