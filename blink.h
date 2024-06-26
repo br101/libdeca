@@ -6,12 +6,10 @@
 
 #include "dwmac.h"
 
-#define BLINK_MSG 0x11
-
 typedef void (*blink_cb_t)(uint64_t src, uint32_t seq, uint64_t rx_ts,
 						   uint64_t time_ms, uint8_t battery);
 
-bool blink_send_short(void);
+bool blink_send_short(uint16_t src);
 void blink_handle_msg_short(const struct rxbuf* rx);
 bool blink_send_long(uint64_t src);
 void blink_handle_msg_long(const struct rxbuf* rx);

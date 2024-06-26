@@ -56,15 +56,15 @@ void dwprot_rx_handler(const struct rxbuf* rx)
 		return; // too short
 	}
 
-	if ((uint8_t)fc == MAC154_FC_BLINK_LONG) {
-		// handle 1 byte FC for blink first!
+	// Note: handle 1 byte FC for blink first!
+	if ((uint8_t)fc == MAC154_FC_BLINK_SHORT) {
+		blink_handle_msg_short(rx);
+	} else if ((uint8_t)fc == MAC154_FC_BLINK_LONG) {
 		blink_handle_msg_long(rx);
 	} else if (fc == (MAC154_FC_TYPE_DATA | MAC154_FC_SHORT)) {
 		const struct prot_short* ps = (const struct prot_short*)rx->buf;
 		if ((ps->func & DWMAC_PROTO_MSG_MASK) == TWR_MSG_GROUP) {
 			twr_handle_message_short(rx);
-		} else if (ps->func == BLINK_MSG) {
-			blink_handle_msg_short(rx);
 		} else if (ps->func == SYNC_MSG) {
 			sync_handle_msg_short(rx);
 		}

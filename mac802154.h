@@ -131,11 +131,10 @@ struct mac154_ack {
 	uint16_t fcs;
 } __attribute__((packed));
 
-struct mac154_blink_short {
+struct mac154_hdr_blink_short {
 	uint8_t fc;
 	uint8_t seqNo;
 	uint16_t src;
-	uint16_t fcs;
 } __attribute__((packed));
 
 struct mac154_hdr_blink_long {
