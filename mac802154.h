@@ -3,16 +3,15 @@
 
 #include <stdint.h>
 
-#define MAC154_FC_TYPE_MASK		0x0007 /* Frame Type */
-#define MAC154_FC_SECURITY		0x0008 /* Security Enabled */
-#define MAC154_FC_FRAME_PEND	0x0010 /* Frame Pending */
-#define MAC154_FC_ACK_REQ		0x0020 /* AR ack required */
-#define MAC154_FC_PAN_ID_COMP	0x0040 /* PAN ID Compression */
-#define MAC154_FC_SEQ_SUPP		0x0100 /* Sequence Number Suppression */
-#define MAC154_FC_IE_PRESENT	0x0200 /* IE Present */
-#define MAC154_FC_DST_ADDR_MASK 0x0C00 /* Destination Addressing Mode */
-#define MAC154_FC_DST_ADDR_NONE                                                \
-	0x0000 /* PAN ID and address field not present */
+#define MAC154_FC_TYPE_MASK		 0x0007 /* Frame Type */
+#define MAC154_FC_SECURITY		 0x0008 /* Security Enabled */
+#define MAC154_FC_FRAME_PEND	 0x0010 /* Frame Pending */
+#define MAC154_FC_ACK_REQ		 0x0020 /* AR ack required */
+#define MAC154_FC_PAN_ID_COMP	 0x0040 /* PAN ID Compression */
+#define MAC154_FC_SEQ_SUPP		 0x0100 /* Sequence Number Suppression */
+#define MAC154_FC_IE_PRESENT	 0x0200 /* IE Present */
+#define MAC154_FC_DST_ADDR_MASK	 0x0C00 /* Destination Addressing Mode */
+#define MAC154_FC_DST_ADDR_NONE	 0x0000 /* PAN ID and address not present */
 #define MAC154_FC_DST_ADDR_SHORT 0x0800 /* 16bit address */
 #define MAC154_FC_DST_ADDR_LONG	 0x0C00 /* 64bit address */
 #define MAC154_FC_VERSION_MASK	 0x3000
@@ -30,7 +29,7 @@
 #define MAC154_FC_TYPE_DATA		0x1
 #define MAC154_FC_TYPE_ACK		0x2
 #define MAC154_FC_TYPE_COMMAND	0x3
-#define MAC154_FC_TYPE_RES		0x4
+#define MAC154_FC_TYPE_RES		0x4 /* reserved */
 #define MAC154_FC_TYPE_MULTI	0x5
 #define MAC154_FC_TYPE_FRAG		0x6
 #define MAC154_FC_TYPE_EXTENDED 0x7
@@ -71,13 +70,13 @@
 #define MAC154_FC_MULTI_SRC_ADDR_LONG  0xC0
 
 /* multipurpose frame long FC fields */
-#define MAC154_FC_MULTIL_PANID		  0x0100
-#define MAC154_FC_MULTIL_SECURITY	  0x0200
-#define MAC154_FC_MULTIL_SEQNUM_SUPP  0x0400
-#define MAC154_FC_MULTIL_FRAME_PEND	  0x0800
-#define MAC154_FC_MULTIL_VERSION_MASK 0x3000
-#define MAC154_FC_MULTIL_ACK_REQ	  0x4000
-#define MAC154_FC_MULTIL_IE_PRESENT	  0x4000
+#define MAC154_FC_MULTI_PANID		 0x0100
+#define MAC154_FC_MULTI_SECURITY	 0x0200
+#define MAC154_FC_MULTI_SEQNUM_SUPP	 0x0400
+#define MAC154_FC_MULTI_FRAME_PEND	 0x0800
+#define MAC154_FC_MULTI_VERSION_MASK 0x3000
+#define MAC154_FC_MULTI_ACK_REQ		 0x4000
+#define MAC154_FC_MULTI_IE_PRESENT	 0x4000
 
 /* "normal" short frame */
 #define MAC154_FC_SHORT                                                        \
