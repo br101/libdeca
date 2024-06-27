@@ -113,7 +113,7 @@ bool blink_send_long(uint64_t src)
 	return res;
 }
 
-void blink_set_handler(blink_cb_t cb)
+void blink_set_observer(blink_cb_t cb)
 {
 	blink_cb = cb;
 }

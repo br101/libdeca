@@ -128,7 +128,7 @@ void sync_handle_msg_long(const struct rxbuf* rx)
 	}
 }
 
-void sync_set_handler(sync_cb_t cb)
+void sync_set_observer(sync_cb_t cb)
 {
 	sync_cb = cb;
 }

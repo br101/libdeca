@@ -14,6 +14,6 @@ bool blink_send_short(uint16_t src);
 void blink_handle_msg_short(const struct rxbuf* rx);
 bool blink_send_long(uint64_t src);
 void blink_handle_msg_long(const struct rxbuf* rx);
-void blink_set_handler(blink_cb_t cb);
+void blink_set_observer(blink_cb_t cb);
 
 #endif

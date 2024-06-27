@@ -15,6 +15,6 @@ bool sync_send_short(void);
 void sync_handle_msg_short(const struct rxbuf* rx);
 bool sync_send_long(uint64_t src);
 void sync_handle_msg_long(const struct rxbuf* rx);
-void sync_set_handler(sync_cb_t cb);
+void sync_set_observer(sync_cb_t cb);
 
 #endif
