@@ -63,7 +63,6 @@ bool dwmac_init(uint16_t mypanId, uint16_t myAddr, uint16_t rx_timeout_sec,
 	/* for 'dwcnt' command */
 	dwt_configeventcounters(1);
 
-	// rx_bufs = bufs_init(DWMAC_RX_QUEUE_LEN, sizeof(struct rxbuf));
 	// tx_bufs = bufs_init(DWMAC_TX_QUEUE_LEN, sizeof(struct txbuf));
 
 	// dwmac_plat_init(rx_timeout_sec);

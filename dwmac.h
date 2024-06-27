@@ -18,9 +18,6 @@
 #define DWMAC_INCLUDE_RXDIAG   0
 #define DWMAC_XTAL_TRIM		   0
 
-#define DWMAC_RX_QUEUE_LEN 5
-#define DWMAC_TX_QUEUE_LEN 5
-
 /* Buffer length is optimized for FIRA at the moment */
 #define DWMAC_RXBUF_LEN 70
 
