@@ -36,7 +36,7 @@ static const char* LOG_TAG = "TWR";
 struct twr_msg_final {
 	uint32_t round;
 	uint32_t delay;
-	uint16_t cnum; // command number / TWR ID
+	uint16_t cnum; // sequence number / TWR ID
 } __attribute__((packed));
 
 struct twr_msg_ss_resp {
@@ -45,7 +45,7 @@ struct twr_msg_ss_resp {
 } __attribute__((packed));
 
 struct twr_msg_report {
-	uint16_t cnum; // command number / TWR ID
+	uint16_t cnum; // sequence number / TWR ID
 	uint16_t dist;
 } __attribute__((packed));
 
@@ -55,25 +55,23 @@ static uint32_t twr_rx_delay; // UUS
 static uint16_t twr_pto;
 
 /* state */
+static twr_cb_t twr_observer_cb;
+static uint16_t twr_dst;
+static uint16_t twr_cnum = 0;
 static bool single_sided = false;
 static uint8_t expected_msg = 0;
 static int retry = 0;
 static bool in_progress = false;
-static uint16_t twr_dst[TWR_MAX_DST];
-static int current_idx = -1;	// index into list of destinations
-static int twr_cnum = 0;		// command number or TWR sequence number
-static struct twr_res* twr_res; // where to write result
-static size_t twr_res_len;		// length of result
-static void (*twr_done_handler)(int res); // called when TWR sequence done
 static uint64_t last_poll_rx_ts;
 
 static void twr_retry(void);
-static bool twr_send_report(uint16_t tag, uint16_t dist, uint64_t final_rx_ts);
-static void twr_sequence_next(void);
-static void twr_write_result_buffer(int dist);
+static bool twr_send_report(uint16_t tag, uint16_t dist, uint16_t cnum,
+							uint64_t final_rx_ts);
+static void twr_callback(uint16_t src, uint16_t dst, uint16_t dist,
+						 uint16_t cnum);
 static uint16_t twr_fixup_distance(int dist);
-static void twr_handle_result(uint16_t dist, uint16_t cnum, uint16_t src,
-							  bool reported, bool move_on);
+static void twr_handle_result(uint16_t src, uint16_t dst, uint16_t dist,
+							  uint16_t cnum, bool reported, bool initiator);
 
 /*
  * Essential TWR messages
@@ -193,7 +191,8 @@ static void twr_handle_ss_response(const struct rxbuf* rx)
 	int dist = TIME_TO_DISTANCE(tof) * 100;
 
 	dist = twr_fixup_distance(dist);
-	twr_handle_result(dist, twr_cnum, ps->hdr.src, false, true);
+	twr_handle_result(dwmac_get_mac16(), ps->hdr.src, dist, twr_cnum, false,
+					  true);
 }
 
 /* TAG -> ANCOR */
@@ -246,8 +245,9 @@ static bool twr_send_final(uint16_t ancor, uint64_t resp_rx_ts)
 	/* if reports are not sent by the other side, we assume everything is OK
 	 * if the final message was sent. We don't know the distance, so we
 	 * just record "OK" */
-	twr_write_result_buffer(TWR_OK_VALUE);
-	twr_sequence_next();
+	twr_handle_result(dwmac_get_mac16(), ancor, TWR_OK_VALUE, twr_cnum, false,
+					  true);
+	in_progress = false;
 #endif
 
 	return res;
@@ -266,32 +266,32 @@ static uint16_t twr_fixup_distance(int dist)
 	}
 }
 
-static void twr_handle_result(uint16_t dist, uint16_t cnum, uint16_t src,
-							  bool reported, bool move_on)
+static void twr_handle_result(uint16_t src, uint16_t dst, uint16_t dist,
+							  uint16_t cnum, bool reported, bool initiator)
 {
-	if (reported) { // not on the "ancor" side
-		twr_write_result_buffer(dist);
-	}
-
 	if (dist == TWR_FAILED_VALUE) {
-		LOG_ERR("#%d " ADDR_FMT ": Distance calculation failed %s", cnum, src,
-				reported ? "REP" : "");
-		if (move_on) {
-			twr_retry(); // may move to next in sequence
+		LOG_ERR("#%d " ADDR_FMT " -> " ADDR_FMT
+				": Distance calculation failed %s",
+				cnum, src, dst, reported ? "REP" : "");
+		if (initiator) {
+			twr_retry();
 		}
 	} else if (dist == 0) {
 		// distance reported as 0, may be too close, or may be failed: retry
-		LOG_INF("#%d " ADDR_FMT ": %u cm %s", cnum, src, dist,
-				reported ? "REP" : "");
-		if (move_on) {
-			twr_retry(); // may move to next in sequence
+		LOG_INF("#%d " ADDR_FMT " -> " ADDR_FMT ": %u cm %s", cnum, src, dst,
+				dist, reported ? "REP" : "");
+		if (initiator) {
+			twr_retry();
 		}
+	} else if (dist == TWR_OK_VALUE) {
+		// this is on initiator side when no reports are expected, we don't know
+		// the distance
+		LOG_INF("#%d " ADDR_FMT " -> " ADDR_FMT ": OK", cnum, src, dst);
 	} else {
-		LOG_INF("#%d " ADDR_FMT ": %u cm %s", cnum, src, dist,
-				reported ? "REP" : "");
-		if (move_on) {
-			twr_sequence_next();
-		}
+		LOG_INF("#%d " ADDR_FMT " -> " ADDR_FMT ": %u cm %s", cnum, src, dst,
+				dist, reported ? "REP" : "");
+		twr_callback(src, dst, dist, cnum);
+		in_progress = false;
 	}
 }
 
@@ -361,102 +361,52 @@ static void twr_handle_final(const struct prot_short* ps, uint64_t final_rx_ts,
 		= twr_distance_calculation(last_poll_rx_ts, resp_tx_ts, final_rx_ts,
 								   msg_final->round, msg_final->delay);
 	dist = twr_fixup_distance(dist);
-	twr_handle_result(dist, msg_final->cnum, ps->hdr.src, false, false);
 
 #if TWR_SEND_REPORT
-	twr_send_report(ps->hdr.src, dist, final_rx_ts);
+	// result will be handled after sending the report (time critical)
+	twr_send_report(ps->hdr.src, dist, msg_final->cnum, final_rx_ts);
+#else
+	// add result. we have been the destination of this TWR sequence
+	twr_handle_result(ps->hdr.src, dwmac_get_mac16(), dist, msg_final->cnum,
+					  false, false);
 #endif
 }
 
-static void twr_write_result_buffer(int dist)
+static void twr_callback(uint16_t src, uint16_t dst, uint16_t dist,
+						 uint16_t cnum)
 {
-	if (current_idx < 0 || current_idx >= TWR_MAX_DST) {
-		LOG_ERR("res index out of range");
-		return;
+	if (twr_observer_cb) {
+		twr_observer_cb(src, dst, dist, cnum);
 	}
-
-	if ((current_idx + 1) * sizeof(struct twr_res) > twr_res_len) {
-		LOG_ERR("result buffer too small %d vs %d",
-				(current_idx + 1) * sizeof(struct twr_res), twr_res_len);
-		return;
-	}
-
-	uint16_t addr = twr_dst[current_idx];
-	if (addr == 0) {
-		LOG_ERR("res invalid index %d", current_idx);
-		twr_cancel();
-		return;
-	}
-
-	twr_res[current_idx].addr = addr;
-	twr_res[current_idx].dist = dist;
 }
 
 static void twr_retry(void)
 {
-	if (current_idx < 0 || current_idx >= TWR_MAX_DST) {
-		LOG_ERR("retry index out of range");
-		return;
-	}
-
-	uint16_t addr = twr_dst[current_idx];
-	if (addr == 0) {
-		LOG_ERR("retry invalid index %d", current_idx);
-		twr_cancel();
-		return;
-	}
-
 	if (++retry < TWR_MAX_RETRY) {
 		int d = rand() % TWR_RETRY_DELAY;
 		deca_sleep(d);
-		LOG_INF("retry %d to " ADDR_FMT " after %d ms", retry, addr, d);
-		twr_send_poll(addr);
+		LOG_INF("retry %d to " ADDR_FMT " after %d ms", retry, twr_dst, d);
+		twr_send_poll(twr_dst);
 	} else {
-		LOG_ERR("retry limit exceeded " ADDR_FMT, addr);
-		twr_write_result_buffer(TWR_FAILED_VALUE);
-		twr_sequence_next();
+		LOG_ERR("retry limit exceeded " ADDR_FMT, twr_dst);
+		twr_callback(dwmac_get_mac16(), twr_dst, TWR_FAILED_VALUE, twr_cnum);
+		in_progress = false;
 	}
 }
 
-bool twr_start(const uint16_t anc[], size_t len, uint16_t cnum, void* res,
-			   size_t res_len, void (*done_handler)(int res), bool ss)
+/* Start TWR sequence to ancor */
+bool twr_start(uint16_t dst, bool ss)
 {
 	if (!dwhw_is_ready()) {
 		return false;
 	}
 
-	/* first add tentative ancor to our list */
-	size_t j = 0;
-	for (size_t i = 0; i < TWR_MAX_DST && i < len; i++) {
-		if (anc[i] == 0)
-			break;
-		if (anc[i] == 0xffff || anc[i] == dwmac_get_mac16()) {
-			LOG_ERR("Ignoring invalid dst " ADDR_FMT, anc[i]);
-			continue;
-		}
-		twr_dst[j++] = anc[i];
-	}
-
-	if (j == 0) {
-		return false;
-	}
-
-	while (j < TWR_MAX_DST) {
-		twr_dst[j++] = 0; // end marker
-	}
-
-	// last_batt = tag_get_battery();
-
-	/* Immediately start TWR sequence to first ancor */
+	twr_dst = dst;
+	twr_cnum++;
 	in_progress = true;
-	current_idx = 0;
 	retry = 0;
-	twr_cnum = cnum;
-	twr_res = res;
-	twr_res_len = res_len;
-	twr_done_handler = done_handler;
 	single_sided = ss;
-	twr_send_poll(twr_dst[0]);
+	twr_send_poll(twr_dst);
 	return true;
 }
 
@@ -465,7 +415,8 @@ bool twr_start(const uint16_t anc[], size_t len, uint16_t cnum, void* res,
  */
 
 /* ANCOR -> TAG */
-static bool twr_send_report(uint16_t tag, uint16_t dist, uint64_t final_rx_ts)
+static bool twr_send_report(uint16_t tag, uint16_t dist, uint16_t cnum,
+							uint64_t final_rx_ts)
 {
 	struct txbuf* tx = dwmac_txbuf_get();
 	if (tx == NULL) {
@@ -476,7 +427,7 @@ static bool twr_send_report(uint16_t tag, uint16_t dist, uint64_t final_rx_ts)
 
 	struct twr_msg_report* msg = dwprot_short_prepare(
 		tx, sizeof(struct twr_msg_report), TWR_MSG_REPO, tag);
-	msg->cnum = twr_cnum;
+	msg->cnum = cnum;
 	msg->dist = dist;
 
 	uint64_t rep_tx_time = (final_rx_ts + twr_delay_dtu) & DTU_DELAYEDTRX_MASK;
@@ -484,6 +435,10 @@ static bool twr_send_report(uint16_t tag, uint16_t dist, uint64_t final_rx_ts)
 
 	bool res = dwmac_tx_queue(tx);
 	LOG_TX_RES(res, "Report to " ADDR_FMT ": distance %u cm", tag, dist);
+
+	// we have been the destination of this TWR sequence
+	twr_handle_result(tag, dwmac_get_mac16(), dist, cnum, false, false);
+
 	return res;
 }
 
@@ -501,52 +456,9 @@ static void twr_handle_report(const struct rxbuf* rx)
 	/* no more messages expected */
 	expected_msg = 0;
 
-	/* single distance back to me (tag) */
-	twr_handle_result(msg->dist, twr_cnum, ps->hdr.src, true, true);
-}
-
-/*
- * sequence functions
- */
-
-/* TAG */
-static void twr_sequence_next(void)
-{
-	if (current_idx < 0 || current_idx >= TWR_MAX_DST) {
-		LOG_ERR("next index out of range");
-		return;
-	}
-
-	current_idx++;
-	if (current_idx < TWR_MAX_DST && twr_dst[current_idx] != 0) {
-		/* move to next */
-		uint16_t addr = twr_dst[current_idx];
-		if (addr == 0) {
-			LOG_ERR("next invalid index %d", current_idx);
-			twr_cancel();
-			return;
-		}
-
-		retry = 0;
-		twr_send_poll(addr);
-	} else {
-		/* done with all */
-		if (twr_done_handler != NULL) {
-			/* result len has to be a multiple of twr_res and smaller than total
-			 */
-			size_t i = 1;
-			while (i * sizeof(struct twr_res) <= twr_res_len
-				   && i <= (size_t)current_idx) {
-				i++;
-			}
-
-			twr_done_handler((i - 1) * sizeof(struct twr_res));
-		}
-
-		in_progress = false;
-		twr_cnum = 0;
-		current_idx = -1;
-	}
+	/* distance back to me (tag) */
+	twr_handle_result(dwmac_get_mac16(), ps->hdr.src, msg->dist, msg->cnum,
+					  true, true);
 }
 
 /*
@@ -591,19 +503,7 @@ void twr_handle_message_short(const struct rxbuf* rx)
 
 void twr_handle_timeout(uint32_t status)
 {
-	if (current_idx < 0 || current_idx >= TWR_MAX_DST) {
-		LOG_ERR("timeout index out of range");
-		return;
-	}
-
-	uint16_t addr = twr_dst[current_idx];
-	if (addr == 0) {
-		LOG_ERR("timeout invalid index %d", current_idx);
-		twr_cancel();
-		return;
-	}
-
-	LOG_ERR("RX timeout from " ADDR_FMT, addr);
+	LOG_ERR("RX timeout from " ADDR_FMT, twr_dst);
 	if (expected_msg == TWR_MSG_RESP || expected_msg == TWR_MSG_REPO
 		|| expected_msg == TWR_MSG_SSRESP) {
 		/* The TAG (Initiator) side can retry the whole exchange */
@@ -698,8 +598,11 @@ void twr_init(uint8_t rate_dw, uint8_t plen_dw, uint8_t prf_dw)
 void twr_cancel(void)
 {
 	in_progress = false;
-	twr_cnum = 0;
-	current_idx = -1;
 	retry = 0;
 	expected_msg = 0;
+}
+
+void twr_set_observer(twr_cb_t cb)
+{
+	twr_observer_cb = cb;
 }
