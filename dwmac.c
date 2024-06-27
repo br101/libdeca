@@ -393,7 +393,7 @@ bool dwmac_tx_raw(struct txbuf* tx)
 #endif
 
 #if CONFIG_DECA_DEBUG_TX_DUMP
-	LOG_HEXDUMP(tx->u.buf, tx->len);
+	LOG_HEXDUMP("TX", tx->buf, tx->len);
 #endif
 	return true;
 }
@@ -416,7 +416,7 @@ void dwmac_handle_rx_frame(const struct rxbuf* rx)
 #endif
 
 #if CONFIG_DECA_DEBUG_RX_DUMP
-	LOG_HEXDUMP("RX: ", rx->u.buf, rx->len);
+	LOG_HEXDUMP("RX", rx->buf, rx->len);
 #endif
 
 #if DWMAC_INCLUDE_RXDIAG
