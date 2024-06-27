@@ -86,7 +86,11 @@ bool dwmac_init(uint16_t mypanId, uint16_t myAddr, uint16_t rx_timeout_sec,
 
 	dwt_setinterrupt(DWT_INT_RFCG | DWT_INT_TFRS | DWT_INT_RPHE | DWT_INT_RFCE
 						 | DWT_INT_RFSL | DWT_INT_RFTO | DWT_INT_LDEERR
-						 | DWT_INT_RXPTO | DWT_INT_SFDT,
+						 | DWT_INT_RXPTO | DWT_INT_SFDT
+#if CONFIG_DECA_DEBUG_FRAME_FILTER
+						 | DWT_INT_ARFE
+#endif
+					 ,
 					 0, DWT_ENABLE_INT_ONLY);
 #endif
 
@@ -474,7 +478,7 @@ void dwmac_handle_tx_done(void)
 
 void dwmac_handle_error(uint32_t status)
 {
-#if CONFIG_DECA_DEBUG_RX_STATUS
+#if CONFIG_DECA_DEBUG_RX_STATUS | CONFIG_DECA_DEBUG_FRAME_FILTER
 	deca_print_irq_status(status);
 #endif
 
