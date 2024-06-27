@@ -10,7 +10,7 @@ It provides:
  * Functions for getting recommended PHY parameters
  * A convenint API for defining TX buffer properties
  * Helpers for converting time units
- * A simple implementation of two-way ranging (TWR)
+ * A simple to use implementation of two-way ranging (TWR)
  * Some definitions for IEEE 802.15.4 frame formats
 
 Most of the code is pure platform-independent C code, and can be used in anywhere, but IRQ handling is platform specific and implemented for:
@@ -37,15 +37,10 @@ Here is an example for initializing the library and using it for TWR:
 #include "dwphy.h"
 #include "dwproto.h"
 
-static struct twr_res res[2];
-
-static void twr_done_cb(int num)
+static void twr_done_cb(uint64_t src, uint64_t dst, uint16_t dist,
+						 uint16_t num)
 {
-	if (num == 4) {
-		LOG_INF("TWR Done %04X: %d cm", res[0].addr, res[0].dist);
-	} else {
-		LOG_ERR("Unexpected TWR result %d", num);
-	}
+  LOG_INF("TWR Done %04X: %d cm", (uint16_t)dst, dist);
 }
 
 void test_twr(void)
@@ -62,11 +57,10 @@ void test_twr(void)
   dwmac_init(PANID, MAC16, 10, dwprot_rx_handler, your_timeout_handler,
   			     your_error_handler);
   dwmac_set_frame_filter();
-  twr_init(DWT_BR_6M8, DWT_PLEN_64, DWT_PRF_64M);
-
-  // two way ranging to two destinations
-  uint16_t dst[] = {0x0002, 0x0003};
-  twr_start(dst, 2, 1, res, sizeof(res), twr_done_cb, false);
+  twr_init(DWT_BR_6M8, DWT_PLEN_64, DWT_PRF_64M, TWR_PROCESSING_DELAY);
+  twr_set_observer(twr_done_cb);
+  // two way ranging to 0x0001
+  twr_start(0x0001);
 }
 ```
 
@@ -78,11 +72,11 @@ dwt_forcetrxoff();
 dwt_rxenable(DWT_START_RX_IMMEDIATE);
 ```
 
-If you get error messages like
+If you get error messages like this:
 ```
 E (4983) DECA: TX error seq 0 (0x4080e1a0)
 E (4983) DECA:  SYS Time:       442f907a00
 E (4993) DECA:  TX Time:        442ea48234
 E (4993) DECA:  Diff:           ff140834 (-242 us)
 ```
-the interrupt processing on your CPU is not fast enough (in this case we wanted to transmit a packet at a certain time but we were 242us too late). You can increase `TWR_PROCESSING_TIME` in `ranging.c`, but they have to be the same on **both sides** (transmit and receive). For more exact measurements it's better to have a lower number here. Also note that logging, especially in interrupt context in `dwmac_irq.c` can have an impact on the processing time, so after you are sure you get the right interrupts, it's better to disable logging there.
+then the interrupt processing on your CPU is not fast enough (in this case we wanted to transmit a packet at a certain time but we were 242us too late). You can increase `TWR_PROCESSING_TIME` in `ranging.h`, or pass a different number to twr_init() but they **have to be the same on both sides** (transmit and receive). For more exact distance measurements it's better to have a lower number here. Also note that logging, especially in interrupt context in `dwmac_irq.c` can have an impact on the processing time, so after you are sure you get the right interrupts, it's better to disable logging there.

@@ -20,7 +20,6 @@ static const char* LOG_TAG = "TWR";
 #define TWR_RETRY_DELAY		  20 /* random with this maximum in ms */
 #define TWR_SEND_REPORT		  1
 #define TWR_SPI_US_PER_BYTE	  2.3 /* us measured with 8MHz DMA for 12 byte */
-#define TWR_PROCESSING_TIME	  600 /* us */
 
 /*
  * TWR Message definitions
@@ -65,6 +64,7 @@ static bool in_progress = false;
 static uint64_t last_poll_rx_ts;
 
 static void twr_retry(void);
+static void twr_handle_timeout(uint32_t status);
 static bool twr_send_report(uint16_t tag, uint16_t dist, uint16_t cnum,
 							uint64_t final_rx_ts);
 static void twr_callback(uint16_t src, uint16_t dst, uint16_t dist,
@@ -394,20 +394,32 @@ static void twr_retry(void)
 	}
 }
 
-/* Start TWR sequence to ancor */
-bool twr_start(uint16_t dst, bool ss)
+bool twr_start(uint16_t dst)
 {
 	if (!dwhw_is_ready()) {
 		return false;
 	}
 
 	twr_dst = dst;
+	single_sided = false;
 	twr_cnum++;
 	in_progress = true;
 	retry = 0;
-	single_sided = ss;
-	twr_send_poll(twr_dst);
-	return true;
+	return twr_send_poll(twr_dst);
+}
+
+bool twr_start_ss(uint16_t dst)
+{
+	if (!dwhw_is_ready()) {
+		return false;
+	}
+
+	twr_dst = dst;
+	single_sided = true;
+	twr_cnum++;
+	in_progress = true;
+	retry = 0;
+	return twr_send_poll(twr_dst);
 }
 
 /*
@@ -501,7 +513,7 @@ void twr_handle_message_short(const struct rxbuf* rx)
 	}
 }
 
-void twr_handle_timeout(uint32_t status)
+static void twr_handle_timeout(uint32_t status)
 {
 	LOG_ERR("RX timeout from " ADDR_FMT, twr_dst);
 	if (expected_msg == TWR_MSG_RESP || expected_msg == TWR_MSG_REPO
@@ -522,7 +534,8 @@ bool twr_in_progress(void)
 	return in_progress;
 }
 
-void twr_init(uint8_t rate_dw, uint8_t plen_dw, uint8_t prf_dw)
+void twr_init(uint8_t rate_dw, uint8_t plen_dw, uint8_t prf_dw,
+			  uint32_t processing_delay_us)
 {
 	/* Calculate reply delay: To make the ToF calculation error as small as
 	 * possible in the presence of clock drift, the reply delays on both
@@ -538,7 +551,7 @@ void twr_init(uint8_t rate_dw, uint8_t plen_dw, uint8_t prf_dw)
 	/* the processing time is a constant plus the time it takes to transfer
 	 * the packet data over SPI */
 	uint32_t proc_time_us
-		= TWR_PROCESSING_TIME + TWR_SPI_US_PER_BYTE * DWMAC_PROTO_MIN_LEN
+		= processing_delay_us + TWR_SPI_US_PER_BYTE * DWMAC_PROTO_MIN_LEN
 		  + TWR_SPI_US_PER_BYTE
 				* (DWMAC_PROTO_MIN_LEN + sizeof(struct twr_msg_final));
 
