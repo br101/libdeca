@@ -49,12 +49,12 @@ void* dwprot_long_src_prepare(struct txbuf* tx, size_t len, uint8_t func,
 
 void dwprot_rx_handler(const struct rxbuf* rx)
 {
-	uint16_t fc = *(uint16_t*)rx->buf;
-	// LOG_INF("RX len %d FC 0x%04X", rx->len, fc);
-
-	if (rx->len < DWMAC_PROTO_MIN_LEN) {
+	if (rx->len < 2) {
 		return; // too short
 	}
+
+	uint16_t fc = *(uint16_t*)rx->buf;
+	// LOG_INF("RX len %d FC 0x%04X", rx->len, fc);
 
 	// Note: handle 1 byte FC for blink first!
 	if ((uint8_t)fc == MAC154_FC_BLINK_SHORT) {
