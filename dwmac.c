@@ -596,4 +596,5 @@ uint64_t dwmac_get_mac64(void)
 void dwmac_set_mac64(uint64_t mac)
 {
 	mac64 = mac;
+	dwt_seteui((uint8_t*)&mac64);
 }
