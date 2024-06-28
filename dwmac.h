@@ -113,6 +113,6 @@ void dwmac_print_event_counters(void);
 
 uint16_t dwmac_get_mac16(void);
 uint16_t dwmac_get_panid(void);
-uint16_t dwmac_get_mac64(void);
+uint64_t dwmac_get_mac64(void);
 
 #endif

@@ -588,7 +588,7 @@ uint16_t dwmac_get_panid(void)
 	return panId;
 }
 
-uint16_t dwmac_get_mac64(void)
+uint64_t dwmac_get_mac64(void)
 {
 	return mac64;
 }
