@@ -153,11 +153,11 @@ bool dwphy_config(void)
 						- dwphy_calc_sfd_time(prf, config.dataRate)),
 		PKTTIME_TO_USEC(dwphy_calc_sfd_time(prf, config.dataRate)),
 		PKTTIME_TO_USEC(dwphy_calc_phyhdr_time(config.dataRate)),
-		DWMAC_PROTO_MIN_LEN,
+		DWMAC_PROTO_SHORT_LEN,
 		(int)PKTTIME_TO_USEC(
-			dwphy_calc_data_time(config.dataRate, DWMAC_PROTO_MIN_LEN)),
+			dwphy_calc_data_time(config.dataRate, DWMAC_PROTO_SHORT_LEN)),
 		(int)PKTTIME_TO_USEC(dwphy_calc_packet_time(
-			config.dataRate, config.txPreambLength, prf, DWMAC_PROTO_MIN_LEN)));
+			config.dataRate, config.txPreambLength, prf, DWMAC_PROTO_SHORT_LEN)));
 
 	if (!check_preamble_len(config.txPreambLength, config.dataRate)) {
 		LOG_ERR("preamble length out of recommended range!");

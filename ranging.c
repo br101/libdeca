@@ -347,7 +347,7 @@ static void twr_handle_final(const struct prot_short* ps, uint64_t final_rx_ts,
 {
 	expected_msg = 0;
 
-	if (len - DWMAC_PROTO_MIN_LEN != sizeof(struct twr_msg_final)) {
+	if (len - DWMAC_PROTO_SHORT_LEN != sizeof(struct twr_msg_final)) {
 		LOG_ERR("Unexpected final msg len");
 		return;
 	}
@@ -457,7 +457,7 @@ static bool twr_send_report(uint16_t tag, uint16_t dist, uint16_t cnum,
 /* TAG or MASTER */
 static void twr_handle_report(const struct rxbuf* rx)
 {
-	if (rx->len - DWMAC_PROTO_MIN_LEN != sizeof(struct twr_msg_report)) {
+	if (rx->len - DWMAC_PROTO_SHORT_LEN != sizeof(struct twr_msg_report)) {
 		LOG_ERR("Unexpected report msg len");
 		return;
 	}
@@ -551,9 +551,9 @@ void twr_init(uint8_t rate_dw, uint8_t plen_dw, uint8_t prf_dw,
 	/* the processing time is a constant plus the time it takes to transfer
 	 * the packet data over SPI */
 	uint32_t proc_time_us
-		= processing_delay_us + TWR_SPI_US_PER_BYTE * DWMAC_PROTO_MIN_LEN
+		= processing_delay_us + TWR_SPI_US_PER_BYTE * DWMAC_PROTO_SHORT_LEN
 		  + TWR_SPI_US_PER_BYTE
-				* (DWMAC_PROTO_MIN_LEN + sizeof(struct twr_msg_final));
+				* (DWMAC_PROTO_SHORT_LEN + sizeof(struct twr_msg_final));
 
 	/* TODO: CHECK: Processing time is higher when debugging is on */
 #if CONFIG_DECA_DEBUG_IRQ_TIME || CONFIG_DECA_DEBUG_RX_DUMP                    \
@@ -575,7 +575,7 @@ void twr_init(uint8_t rate_dw, uint8_t plen_dw, uint8_t prf_dw,
 	 * switch to microseconds */
 	uint32_t twr_delay_us
 		= dwphy_calc_phyhdr_time(rate_dw)
-		  + dwphy_calc_data_time(rate_dw, DWMAC_PROTO_MIN_LEN)
+		  + dwphy_calc_data_time(rate_dw, DWMAC_PROTO_SHORT_LEN)
 		  + dwphy_calc_preamble_time(plen_dw, prf_dw, rate_dw);
 	twr_delay_us = PKTTIME_TO_USEC(twr_delay_us);
 	twr_delay_us += proc_time_us;

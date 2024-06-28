@@ -80,13 +80,18 @@
 
 /* "normal" short frame */
 #define MAC154_FC_SHORT                                                        \
-	(MAC154_FC_DST_ADDR_SHORT | MAC154_FC_SRC_ADDR_SHORT                       \
+	(MAC154_FC_TYPE_DATA | MAC154_FC_DST_ADDR_SHORT | MAC154_FC_SRC_ADDR_SHORT \
 	 | MAC154_FC_PAN_ID_COMP)
+
+/* "normal" long frame */
+#define MAC154_FC_LONG                                                         \
+	(MAC154_FC_TYPE_DATA | MAC154_FC_VERSION_2 | MAC154_FC_DST_ADDR_LONG       \
+	 | MAC154_FC_SRC_ADDR_LONG | MAC154_FC_SEQ_SUPP | MAC154_FC_PAN_ID_COMP)
 
 /* long frame with only source address */
 #define MAC154_FC_LONG_SRC                                                     \
-	(MAC154_FC_VERSION_2 | MAC154_FC_SRC_ADDR_LONG | MAC154_FC_SEQ_SUPP        \
-	 | MAC154_FC_PAN_ID_COMP)
+	(MAC154_FC_TYPE_DATA | MAC154_FC_VERSION_2 | MAC154_FC_SRC_ADDR_LONG       \
+	 | MAC154_FC_SEQ_SUPP | MAC154_FC_PAN_ID_COMP)
 
 #define MAC154_FC_BLINK_SHORT                                                  \
 	(MAC154_FC_TYPE_MULTI | MAC154_FC_MULTI_SRC_ADDR_SHORT)
@@ -144,6 +149,12 @@ struct mac154_hdr_blink_long {
 
 struct mac154_hdr_long_src {
 	uint16_t fc;
+	uint64_t src;
+} __attribute__((packed));
+
+struct mac154_hdr_long {
+	uint16_t fc;
+	uint64_t dst;
 	uint64_t src;
 } __attribute__((packed));
 
