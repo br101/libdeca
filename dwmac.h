@@ -69,6 +69,7 @@ struct txbuf {
 bool dwmac_init(uint16_t mypanId, uint16_t myAddr, uint16_t rx_timeout_sec,
 				deca_rx_cb rx_cb, deca_to_cb to_cb, deca_err_cb err_cb);
 void dwmac_set_frame_filter(void);
+void dwmac_set_mac64(uint64_t mac);
 
 /* TX buffers */
 struct txbuf* dwmac_txbuf_get(void);
@@ -112,5 +113,6 @@ void dwmac_print_event_counters(void);
 
 uint16_t dwmac_get_mac16(void);
 uint16_t dwmac_get_panid(void);
+uint16_t dwmac_get_mac64(void);
 
 #endif

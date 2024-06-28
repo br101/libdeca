@@ -19,6 +19,7 @@ static const char* LOG_TAG = "DECA";
 
 static uint16_t panId;
 static uint16_t macAddr;
+static uint64_t mac64;
 
 static deca_rx_cb dwmac_rx_cb = NULL;
 static deca_to_cb dwmac_to_cb = NULL;
@@ -585,4 +586,14 @@ uint16_t dwmac_get_mac16(void)
 uint16_t dwmac_get_panid(void)
 {
 	return panId;
+}
+
+uint16_t dwmac_get_mac64(void)
+{
+	return mac64;
+}
+
+void dwmac_set_mac64(uint64_t mac)
+{
+	mac64 = mac;
 }

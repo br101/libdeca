@@ -39,37 +39,6 @@ bool sync_send_short(void)
 	return res;
 }
 
-void sync_handle_msg_short(const struct rxbuf* rx)
-{
-	struct prot_short* ps = (struct prot_short*)rx->buf;
-
-	LOG_DBG("Received SYNC #%d from " ADDR_FMT, ps->hdr.seqNo, ps->hdr.src);
-	const struct toda_sync_msg* msg = (struct toda_sync_msg*)ps->pbuf;
-	// LOG_DBGL_TS(DDL_TDOA, "\tTX TS*: ", msg->tx_ts);
-	// LOG_DBGL_TS(DDL_TDOA, "\tRX TS: ", rx->ts);
-
-#if DWMAC_USE_CARRIERINTEG
-	float skewci = dwphy_get_rx_clock_offset_ci(rx->ci) * -1.0;
-#else
-	float skewci = 0.0;
-#endif
-
-#if DEBUG && NO_FLOAT_PRINTF
-	LOG_DBG("SYNC #%d " ADDR_FMT " " DWT_FMT " " DWT_FMT " %s %s",
-			mb->s.hdr.seqNo, mb->s.hdr.src, DWT_PAR(tx_ts), DWT_PAR(rx->ts),
-			double_to_sstr(skewci));
-#else
-	LOG_DBG("SYNC #%lu " ADDR_FMT " " DWT_FMT " " DWT_FMT " %.2f", msg->seq_no,
-			ps->hdr.src, DWT_PAR(msg->tx_ts), DWT_PAR(rx->ts), skewci);
-#endif
-
-	uint64_t rx_ts = dw_timestamp_extend(rx->ts);
-
-	if (sync_cb) {
-		sync_cb(ps->hdr.src, msg->seq_no, msg->tx_ts, rx_ts, skewci);
-	}
-}
-
 bool sync_send_long(uint64_t src)
 {
 	struct txbuf* tx = dwmac_txbuf_get();
@@ -94,16 +63,21 @@ bool sync_send_long(uint64_t src)
 	return res;
 }
 
-void sync_handle_msg_long(const struct rxbuf* rx)
+void sync_handle_msg(const struct rxbuf* rx)
 {
-	struct prot_long_src* pl = (struct prot_long_src*)rx->buf;
+	if (dwprot_get_payload_len(rx->buf, rx->len)
+		!= sizeof(struct toda_sync_msg)) {
+		LOG_ERR("Invalid sized message");
+		return;
+	}
 
-	const struct toda_sync_msg* msg = (struct toda_sync_msg*)pl->pbuf;
+	uint64_t src = dwprot_get_src(rx->buf);
+	const struct toda_sync_msg* msg = dwprot_get_payload(rx->buf);
+
 	// LOG_DBGL_TS(DDL_TDOA, "\tTX TS*: ", msg->tx_ts);
 	// LOG_DBGL_TS(DDL_TDOA, "\tRX TS: ", rx->ts);
 
-	LOG_DBG("Received SYNC %lu from " LADDR_FMT, msg->seq_no,
-			LADDR_PAR(pl->hdr.src));
+	LOG_DBG("Received SYNC %lu from " LADDR_FMT, msg->seq_no, LADDR_PAR(src));
 
 #if DWMAC_USE_CARRIERINTEG
 	float skewci = dwphy_get_rx_clock_offset_ci(rx->ci) * -1.0;
@@ -117,14 +91,14 @@ void sync_handle_msg_long(const struct rxbuf* rx)
 			double_to_sstr(skewci));
 #else
 	LOG_DBG("SYNC LONG #%lu " LADDR_FMT " " DWT_FMT " " DWT_FMT " %.2f",
-			msg->seq_no, LADDR_PAR(pl->hdr.src), DWT_PAR(msg->tx_ts),
-			DWT_PAR(rx->ts), skewci);
+			msg->seq_no, LADDR_PAR(src), DWT_PAR(msg->tx_ts), DWT_PAR(rx->ts),
+			skewci);
 #endif
 
 	uint64_t rx_ts = dw_timestamp_extend(rx->ts);
 
 	if (sync_cb) {
-		sync_cb(pl->hdr.src, msg->seq_no, msg->tx_ts, rx_ts, skewci);
+		sync_cb(src, msg->seq_no, msg->tx_ts, rx_ts, skewci);
 	}
 }
 

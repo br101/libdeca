@@ -1,16 +1,18 @@
 #ifndef DECA_UTIL_H
 #define DECA_UTIL_H
 
-#define ADDR_FMT  "%04X"
+#define ADDR_FMT "%04X"
 
 #if ESP_PLATFORM
-#define LADDR_FMT "[%016llX]"
+#define LADDR_FMT	 "[%016llX]"
 #define LADDR_PAR(x) x
 #else
 // 64 bit printf is not available in NRF SDK
-#define LADDR_FMT "[%08lX%08lX]"
+#define LADDR_FMT	 "[%08lX%08lX]"
 #define LADDR_PAR(x) (uint32_t)(x >> 32), (uint32_t)x
 #endif
+
+#define IS_SHORT_ADDR(x) (((x) & 0xffffffffffff0000LL) == 0x0000000000000000LL)
 
 #define ASSERT_RET(cond)                                                       \
 	if (!(cond)) {                                                             \
