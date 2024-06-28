@@ -1,6 +1,8 @@
 #ifndef DECA_UTIL_H
 #define DECA_UTIL_H
 
+#include <stdint.h>
+
 #define ADDR_FMT "%04X"
 
 #if ESP_PLATFORM
@@ -23,5 +25,7 @@
 #ifndef CEIL_DIV
 #define CEIL_DIV(A, B) (((A) + (B) - 1) / (B))
 #endif
+
+uint64_t mac_to_eui64(const uint8_t* mac);
 
 #endif
