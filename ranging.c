@@ -73,6 +73,15 @@ static uint16_t twr_fixup_distance(int dist);
 static void twr_handle_result(uint64_t src, uint64_t dst, uint16_t dist,
 							  uint16_t cnum, bool reported, bool initiator);
 
+static uint64_t twr_my_mac(uint64_t other_addr)
+{
+	if (IS_SHORT_ADDR(other_addr)) {
+		return dwmac_get_mac16();
+	} else {
+		return dwmac_get_mac64();
+	}
+}
+
 /*
  * Essential TWR messages
  */
@@ -189,7 +198,7 @@ static void twr_handle_ss_response(const struct rxbuf* rx, uint64_t src)
 	int dist = TIME_TO_DISTANCE(tof) * 100;
 
 	dist = twr_fixup_distance(dist);
-	twr_handle_result(dwmac_get_mac64(), src, dist, twr_cnum, false, true);
+	twr_handle_result(twr_my_mac(src), src, dist, twr_cnum, false, true);
 }
 
 /* TAG -> ANCOR */
@@ -242,7 +251,7 @@ static bool twr_send_final(uint64_t ancor, uint64_t resp_rx_ts)
 	/* if reports are not sent by the other side, we assume everything is OK
 	 * if the final message was sent. We don't know the distance, so we
 	 * just record "OK" */
-	twr_handle_result(dwmac_get_mac16(), ancor, TWR_OK_VALUE, twr_cnum, false,
+	twr_handle_result(twr_my_mac(ancor), ancor, TWR_OK_VALUE, twr_cnum, false,
 					  true);
 	in_progress = false;
 #endif
@@ -358,7 +367,7 @@ static void twr_handle_final(const struct twr_msg_final* msg_final,
 	twr_send_report(src, dist, msg_final->cnum, final_rx_ts);
 #else
 	// add result. we have been the destination of this TWR sequence
-	twr_handle_result(src, dwmac_get_mac64(), dist, msg_final->cnum, false,
+	twr_handle_result(src, twr_my_mac(src), dist, msg_final->cnum, false,
 					  false);
 #endif
 }
@@ -381,7 +390,7 @@ static void twr_retry(void)
 		twr_send_poll(twr_dst);
 	} else {
 		LOG_ERR("retry limit exceeded " LADDR_FMT, LADDR_PAR(twr_dst));
-		twr_callback(dwmac_get_mac64(), twr_dst, TWR_FAILED_VALUE, twr_cnum);
+		twr_callback(twr_my_mac(twr_dst), twr_dst, TWR_FAILED_VALUE, twr_cnum);
 		in_progress = false;
 	}
 }
@@ -442,7 +451,7 @@ static bool twr_send_report(uint64_t tag, uint16_t dist, uint16_t cnum,
 			   dist);
 
 	// we have been the destination of this TWR sequence
-	twr_handle_result(tag, dwmac_get_mac16(), dist, cnum, false, false);
+	twr_handle_result(tag, twr_my_mac(tag), dist, cnum, false, false);
 
 	return res;
 }
@@ -454,7 +463,7 @@ static void twr_handle_report(const struct twr_msg_report* msg, uint64_t src)
 	expected_msg = 0;
 
 	/* distance back to me (tag) */
-	twr_handle_result(dwmac_get_mac64(), src, msg->dist, msg->cnum, true, true);
+	twr_handle_result(twr_my_mac(src), src, msg->dist, msg->cnum, true, true);
 }
 
 static size_t twr_get_msg_len(uint8_t func)
