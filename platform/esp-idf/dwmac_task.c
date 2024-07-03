@@ -55,18 +55,23 @@ static void dwmac_task(void* pvParameters)
 
 int dwtask_init(void)
 {
-	dwmac_queue = xQueueCreate(DWMAC_QUEUE_LEN, sizeof(struct dwmac_event_s));
 	if (dwmac_queue == NULL) {
-		LOG_ERR("Could not create queue");
-		return ESP_FAIL;
+		dwmac_queue
+			= xQueueCreate(DWMAC_QUEUE_LEN, sizeof(struct dwmac_event_s));
+		if (dwmac_queue == NULL) {
+			LOG_ERR("Could not create queue");
+			return ESP_FAIL;
+		}
 	}
 
-	BaseType_t err = xTaskCreatePinnedToCore(
-		dwmac_task, "dwmac_task", DWMAC_TASK_STACK_SIZE, NULL, DWMAC_TASK_PRIO,
-		&dwmac_task_hdl, 0);
-	if (err != pdTRUE) {
-		LOG_ERR("create task failed");
-		return ESP_FAIL;
+	if (dwmac_task_hdl == NULL) {
+		BaseType_t err = xTaskCreatePinnedToCore(
+			dwmac_task, "dwmac_task", DWMAC_TASK_STACK_SIZE, NULL,
+			DWMAC_TASK_PRIO, &dwmac_task_hdl, 0);
+		if (err != pdTRUE) {
+			LOG_ERR("create task failed");
+			return ESP_FAIL;
+		}
 	}
 	return ESP_OK;
 }
