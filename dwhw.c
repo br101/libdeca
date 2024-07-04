@@ -24,6 +24,12 @@ bool dwhw_init(void)
 {
 	int ret;
 
+#ifdef DRIVER_VERSION_HEX
+	LOG_INF("Decadriver lib: " DRIVER_VERSION_STR);
+#else
+	LOG_INF("Decadriver source: " DW3000_DEVICE_DRIVER_VER_STRING);
+#endif
+
 #ifdef DRIVER_VERSION_HEX // >= 0x060007
 	ret = dwt_probe((struct dwt_probe_s*)&dw3000_probe_interf);
 	if (ret < 0) {
