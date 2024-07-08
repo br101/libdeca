@@ -77,8 +77,11 @@ bool dwmac_init(uint16_t mypanId, uint16_t myAddr, uint16_t rx_timeout_sec,
 						 | DWT_INT_RXPHE_BIT_MASK | DWT_INT_RXFCE_BIT_MASK
 						 | DWT_INT_RXFSL_BIT_MASK | DWT_INT_RXFTO_BIT_MASK
 						 | DWT_INT_CIAERR_BIT_MASK | DWT_INT_RXPTO_BIT_MASK
-						 | DWT_INT_RXSTO_BIT_MASK,
-					 0, DWT_ENABLE_INT_ONLY);
+						 | DWT_INT_RXSTO_BIT_MASK
+#if CONFIG_DECA_DEBUG_FRAME_FILTER
+						 | DWT_INT_ARFE_BIT_MASK
+#endif
+					 , 0, DWT_ENABLE_INT_ONLY);
 #else
 	dwt_setcallbacks(dwmac_irq_tx_done_cb, dwmac_irq_rx_ok_cb,
 					 dwmac_irq_rx_to_cb, dwmac_irq_err_cb, dwmac_irq_spi_err_cb,
