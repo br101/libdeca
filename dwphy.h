@@ -40,7 +40,6 @@ int dwphy_usec_to_pac(uint32_t x);
 int dwphy_pac_to_usec(uint16_t pacs);
 void dwphy_print_packet_times(void);
 
-float dwphy_get_rx_clock_offset(void);
 float dwphy_get_rx_clock_offset_ci(int32_t ci);
 int dwphy_get_recommended_preambletimeout(void);
 void dwphy_xtal_trim(void);

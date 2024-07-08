@@ -375,27 +375,6 @@ void dwphy_print_packet_times(void)
 #endif
 }
 
-/* returns clock offset (clock skew) between sender and receiver of last
- * received frame.
- * positive value: remote is faster, negative: remote is slower */
-float dwphy_get_rx_clock_offset(void)
-{
-	/* receiver time tracking interval: will just take two values depending
-	 * on PRF: 0x01F00000 @ 16 MHz PRF, and 0x01FC0000 @ 64 MHz */
-	int32_t ttcki = 0; // dwt_read32bitreg(RX_TTCKI_ID);
-
-	/* RX time tracking offset. The value here is the offset measured over
-	 * the interval reported in the RXTTCKI field. This RXTOFS value is a
-	 * 19-bit signed quantity. */
-	int32_t ttcko = 0; // dwt_read32bitreg(RX_TTCKO_ID) & RX_TTCKO_RXTOFS_MASK;
-
-	if (ttcko & 0x040000) {			// negative 19 bit
-		ttcko = ttcko | 0xfff80000; // extend sign bits
-	}
-
-	return 1.0 * ttcko / ttcki;
-}
-
 /* positive value means the local RX clock is running slower than the remote TX
  * device */
 float dwphy_get_rx_clock_offset_ci(int32_t ci)
