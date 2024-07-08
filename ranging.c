@@ -189,10 +189,12 @@ static void twr_handle_ss_response(const struct rxbuf* rx, uint64_t src)
 	uint32_t rtd_resp = msg->resp_tx_ts - msg->poll_rx_ts;
 
 #if DWMAC_USE_CARRIERINTEG
-	float clockOffsetRatio = dwphy_get_rx_clock_offset_ci(rx->ci) / 1.0e6;
+	float clockOffsetRatio = -dwphy_get_rx_clock_offset_ci(rx->ci) / 1.0e6;
 #else
-	float clockOffsetRatio = 0;
+	float clockOffsetRatio
+		= ((float)dwt_readclockoffset()) / (uint32_t)(1 << 26);
 #endif
+
 	double tof
 		= DTU_TO_PS((rtd_init - rtd_resp * (1 - clockOffsetRatio)) / 2.0);
 	int dist = TIME_TO_DISTANCE(tof) * 100;
