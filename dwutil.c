@@ -1,3 +1,12 @@
+/*
+ * libdeca - UWB Library for Qorvo/Decawave DW3000
+ *
+ * Copyright (C) 2016 - 2024 Bruno Randolf (br@einfach.org)
+ *
+ * This source code is licensed under the GNU Lesser General Public License,
+ * Version 3. See the file LICENSE.txt for more details.
+ */
+
 #include "dwutil.h"
 
 uint64_t mac_to_eui64(const uint8_t* mac)

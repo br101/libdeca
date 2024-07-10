@@ -80,3 +80,11 @@ E (4993) DECA:  TX Time:        442ea48234
 E (4993) DECA:  Diff:           ff140834 (-242 us)
 ```
 then the interrupt processing on your CPU is not fast enough (in this case we wanted to transmit a packet at a certain time but we were 242us too late). You can increase `TWR_PROCESSING_TIME` in `ranging.h`, or pass a different number to twr_init() but they **have to be the same on both sides** (transmit and receive). For more exact distance measurements it's better to have a lower number here. Also note that logging, especially in interrupt context in `dwmac_irq.c` can have an impact on the processing time, so after you are sure you get the right interrupts, it's better to disable logging there.
+
+
+## License ##
+
+Copyright (C) 2016 - 2024 Bruno Randolf (br@einfach.org)
+
+This library is licensed under the GNU Lesser General Public License,
+Version 3. See the file LICENSE.txt for more details.
