@@ -16,16 +16,30 @@
 
 #include <deca_device_api.h>
 
+/* Read the carrier integrator value for each received frame and include it in
+ * the RX buffer */
+#ifndef CONFIG_DECA_USE_CARRIERINTEG
+#define CONFIG_DECA_USE_CARRIERINTEG 0
+#endif
+
+/* Read the RX diag structure and include it in the RX buffer */
+#ifndef CONFIG_DECA_READ_RXDIAG
+#define CONFIG_DECA_READ_RXDIAG 0
+#endif
+
+/* Perform XTAL trimming, adjusting the local clock to the clock offset of
+ * another sender. Careful! This can reduce reception of other senders with a
+ * different clock offset! */
+#ifndef CONFIG_DECA_XTAL_TRIM
+#define CONFIG_DECA_XTAL_TRIM 0
+#endif
+
 #define CONFIG_DECA_DEBUG_IRQ_TIME	   0
 #define CONFIG_DECA_DEBUG_RX_DUMP	   0
 #define CONFIG_DECA_DEBUG_RX_STATUS	   0
 #define CONFIG_DECA_DEBUG_TX_DUMP	   0
 #define CONFIG_DECA_DEBUG_TX_TIME	   0
 #define CONFIG_DECA_DEBUG_FRAME_FILTER 1
-
-#define DWMAC_USE_CARRIERINTEG 1
-#define DWMAC_INCLUDE_RXDIAG   0
-#define DWMAC_XTAL_TRIM		   0
 
 /* Buffer length is optimized for FIRA at the moment */
 #define DWMAC_RXBUF_LEN 70
@@ -46,10 +60,10 @@ struct rxbuf {
 	uint64_t ts_irq_start; /* IRQ start timestamp */
 	uint64_t ts_irq_end;   /* IRQ end timestamp */
 #endif
-#if DWMAC_USE_CARRIERINTEG
+#if CONFIG_DECA_USE_CARRIERINTEG
 	int32_t ci; /* carrier integrator for clock offset */
 #endif
-#if DWMAC_INCLUDE_RXDIAG
+#if CONFIG_DECA_READ_RXDIAG
 	dwt_rxdiag_t diag;
 #endif
 };

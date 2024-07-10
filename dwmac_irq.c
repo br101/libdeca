@@ -31,7 +31,7 @@ void dwmac_irq_rx_ok_cb(const dwt_cb_data_t* status)
 	// DBG_UWB_IRQ("*** RX %lx flags %x", status->status, status->rx_flags);
 
 #if CONFIG_DECA_DEBUG_IRQ_TIME
-	uint64_t start_ts = deca_get_sys_time();
+	uint64_t start_ts = dw_get_systime();
 #endif
 
 	if (current_tx != NULL && current_tx->pto != 0) {
@@ -84,11 +84,11 @@ void dwmac_irq_rx_ok_cb(const dwt_cb_data_t* status)
 		}
 	}
 
-#if DWMAC_USE_CARRIERINTEG
+#if CONFIG_DECA_USE_CARRIERINTEG
 	rx->ci = dwt_readcarrierintegrator();
 #endif
 
-#if DWMAC_INCLUDE_RXDIAG
+#if CONFIG_DECA_READ_RXDIAG
 	dwt_readdiagnostics(&rx->diag);
 #endif
 
@@ -99,7 +99,7 @@ void dwmac_irq_rx_ok_cb(const dwt_cb_data_t* status)
 
 #if CONFIG_DECA_DEBUG_IRQ_TIME
 	rx->ts_irq_start = start_ts;
-	rx->ts_irq_end = deca_get_sys_time();
+	rx->ts_irq_end = dw_get_systime();
 #endif
 
 	dwtask_queue_event(DWEVT_RX, rx);

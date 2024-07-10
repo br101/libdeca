@@ -88,7 +88,7 @@ void sync_handle_msg(const struct rxbuf* rx)
 
 	LOG_DBG("Received SYNC %lu from " LADDR_FMT, msg->seq_no, LADDR_PAR(src));
 
-#if DWMAC_USE_CARRIERINTEG
+#if CONFIG_DECA_USE_CARRIERINTEG
 	float skew = dwphy_get_rx_clock_offset_ci(rx->ci) * -1.0;
 #else
 	float skew = (float)dwt_readclockoffset() / (uint32_t)(1 << 26) * 1.0e6;

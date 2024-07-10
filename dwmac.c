@@ -419,13 +419,10 @@ extern uint64_t dw_irq_time;
 void dwmac_handle_rx_frame(const struct rxbuf* rx)
 {
 #if CONFIG_DECA_DEBUG_IRQ_TIME
-	uint64_t st = deca_get_sys_time();
-	// LOG_DBG("RX to IRQ\t%d", (int)DTU_TO_US(dw_irq_time - rx->ts));
-	LOG_DBG("RX to CB:\t%d", (int)DTU_TO_US(rx->ts_irq_start - rx->ts));
-	// LOG_DBG("IRQ to CB\t%d", (int)DTU_TO_US(rx->ts_irq_start -
-	// dw_irq_time));
-	LOG_DBG("RX to Sched:\t%d", (int)DTU_TO_US(st - rx->ts));
-	LOG_DBG("Time in CB:\t%d",
+	uint64_t st = dw_get_systime();
+	LOG_INF("RX to CB:\t%d us", (int)DTU_TO_US(rx->ts_irq_start - rx->ts));
+	LOG_INF("RX to Sched:\t%d us", (int)DTU_TO_US(st - rx->ts));
+	LOG_INF("Time in CB:\t%d us",
 			(int)DTU_TO_US(rx->ts_irq_end - rx->ts_irq_start));
 	LOG_DBG("IRQ start %lu", (uint32_t)rx->ts_irq_start);
 	LOG_DBG("IRQ end %lu", (uint32_t)rx->ts_irq_end);
@@ -435,7 +432,7 @@ void dwmac_handle_rx_frame(const struct rxbuf* rx)
 	LOG_HEXDUMP("RX", rx->buf, rx->len);
 #endif
 
-#if DWMAC_INCLUDE_RXDIAG
+#if CONFIG_DECA_READ_RXDIAG
 	LOG_INF("DIAG preamb %d", rx->diag.rxPreamCount);
 #endif
 
@@ -449,7 +446,7 @@ void dwmac_handle_rx_frame(const struct rxbuf* rx)
 		}
 #endif
 
-#if DWMAC_XTAL_TRIM
+#if CONFIG_DECA_XTAL_TRIM
 	if (rx->len > 0) {
 		dwphy_xtal_trim();
 	}

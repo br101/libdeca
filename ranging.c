@@ -197,7 +197,7 @@ static void twr_handle_ss_response(const struct rxbuf* rx, uint64_t src)
 	uint32_t rtd_init = resp_rx_ts - poll_tx_ts;
 	uint32_t rtd_resp = msg->resp_tx_ts - msg->poll_rx_ts;
 
-#if DWMAC_USE_CARRIERINTEG
+#if CONFIG_DECA_USE_CARRIERINTEG
 	float clockOffsetRatio = -dwphy_get_rx_clock_offset_ci(rx->ci) / 1.0e6;
 #else
 	float clockOffsetRatio
@@ -588,7 +588,7 @@ void twr_init(uint8_t rate_dw, uint8_t plen_dw, uint8_t prf_dw,
 	/* TODO: CHECK: Processing time is higher when debugging is on */
 #if CONFIG_DECA_DEBUG_IRQ_TIME || CONFIG_DECA_DEBUG_RX_DUMP                    \
 	|| CONFIG_DECA_DEBUG_TX_DUMP || CONFIG_DECA_DEBUG_TX_TIME                  \
-	|| CONFIG_DECA_DEBUG_RX_STATUS || DWMAC_INCLUDE_RXDIAG                     \
+	|| CONFIG_DECA_DEBUG_RX_STATUS || CONFIG_DECA_READ_RXDIAG                  \
 	|| TWR_DEBUG_CALCULATION
 	proc_time_us += 400;
 #endif
@@ -619,7 +619,7 @@ void twr_init(uint8_t rate_dw, uint8_t plen_dw, uint8_t prf_dw,
 
 #if CONFIG_DECA_DEBUG_IRQ_TIME || CONFIG_DECA_DEBUG_RX_DUMP                    \
 	|| CONFIG_DECA_DEBUG_TX_DUMP || CONFIG_DECA_DEBUG_TX_TIME                  \
-	|| CONFIG_DECA_DEBUG_RX_STATUS || DWMAC_INCLUDE_RXDIAG
+	|| CONFIG_DECA_DEBUG_RX_STATUS || CONFIG_DECA_READ_RXDIAG
 	twr_pto += 3;
 #endif
 
