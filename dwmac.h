@@ -108,12 +108,11 @@ void dwmac_tx_set_preamble_timeout(struct txbuf* tx, uint16_t pto);
 void dwmac_tx_set_timeout_handler(struct txbuf* tx, deca_to_cb toh);
 void dwmac_tx_set_complete_handler(struct txbuf* tx, void (*h)(void));
 void dwmac_tx_set_txtime(struct txbuf* tx, uint64_t time);
-int dwmac_tx_at_slot(struct txbuf* tx, uint8_t num_slots);
-int dwmac_tx_at_slot_len(struct txbuf* tx, size_t max_pkt_len,
-						 uint8_t num_slots);
+
 bool dwmac_tx_queue(struct txbuf* tx);
 bool dwmac_tx_raw(struct txbuf* tx);
 
+/* called from task / scheduler context */
 void dwmac_handle_rx_frame(const struct rxbuf* rx);
 void dwmac_handle_rx_timeout(uint32_t status);
 void dwmac_handle_tx_done(void);

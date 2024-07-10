@@ -31,14 +31,13 @@ void dwmac_irq_rx_ok_cb(const dwt_cb_data_t* status)
 	// DBG_UWB_IRQ("*** RX %lx flags %x", status->status, status->rx_flags);
 
 #if CONFIG_DECA_DEBUG_IRQ_TIME
-	uint64_t start_ts = dw_get_systime();
+	rx->ts_irq_start = dw_get_systime();
 #endif
 
 	if (current_tx != NULL && current_tx->pto != 0) {
 		/* sometimes PTO triggers even though we just received a frame.
 		 * this seems to happen when PTO is quite small, to avoid this
 		 * we disable it here */
-		// LOG_INF("*** Disable PTO");
 		dwt_setpreambledetecttimeout(0);
 	}
 
@@ -49,14 +48,8 @@ void dwmac_irq_rx_ok_cb(const dwt_cb_data_t* status)
 		}
 		return;
 	}
+
 	struct rxbuf* rx = &rx_buffer;
-	if (rx == NULL) {
-		LOG_ERR_IRQ("RX Queue full (Data)");
-		if (rx_reenable) {
-			dwt_rxenable(DWT_START_RX_IMMEDIATE);
-		}
-		return;
-	}
 
 	rx->len = status->datalength;
 	rx->ts = dw_get_rx_timestamp();
@@ -98,7 +91,6 @@ void dwmac_irq_rx_ok_cb(const dwt_cb_data_t* status)
 	}
 
 #if CONFIG_DECA_DEBUG_IRQ_TIME
-	rx->ts_irq_start = start_ts;
 	rx->ts_irq_end = dw_get_systime();
 #endif
 
@@ -109,8 +101,8 @@ void dwmac_irq_rx_to_cb(const dwt_cb_data_t* dat)
 {
 	DBG_UWB_IRQ("*** RX TO %lx", dat->status);
 
-#ifdef DRIVER_VERSION_HEX // >= 0x060007
 	/* reset timeout values to zero, if not they keep triggering */
+#ifdef DRIVER_VERSION_HEX // >= 0x060007
 	if (dat->status & DWT_INT_RXFTO_BIT_MASK) {
 		dwt_setrxtimeout(0);
 	}

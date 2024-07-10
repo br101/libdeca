@@ -7,17 +7,12 @@
  * Version 3. See the file LICENSE.txt for more details.
  */
 
-#include <string.h>
-#include <stdio.h>
-
 #include <deca_version.h>
 #include <deca_device_api.h>
 #include <dw3000_hw.h>
 #include <dw3000_spi.h>
 
 #include "dwhw.h"
-#include "dwphy.h"
-
 #include "log.h"
 
 #ifdef DRIVER_VERSION_HEX // >= 0x060007
@@ -93,6 +88,7 @@ void dwhw_sleep(void)
 
 	/* Sleep configuration:
 	 * - wakeup on CS pin
+	 * - wakeup on WAKEUP
 	 * - enable sleep mode */
 	dwt_configuresleep(0, DWT_SLP_EN | DWT_WAKE_CSN | DWT_WAKE_WUP);
 	dwt_entersleep(DWT_DW_INIT);
@@ -137,57 +133,6 @@ bool dwhw_wakeup(void)
 
 	dwchip_ready = true;
 	return true;
-}
-
-const char* dwhw_batt_str(uint8_t raw)
-{
-	static char bats[6];
-	float bf = 0.0057 * raw + 2.3;
-
-#if NO_FLOAT_PRINTF
-	int r = double_to_str(bf, bats, sizeof(bats));
-#else
-	int r = snprintf(bats, sizeof(bats), "%.2f", bf);
-#endif
-	if (r > 0 && (size_t)r >= sizeof(bats)) {
-		bats[sizeof(bats) - 1] = '\0';
-	}
-	return bats;
-}
-
-float dwhw_conv_temp(uint8_t temp, char* temps, size_t len)
-{
-	float tf = 1.13 * temp - 113.0;
-
-	if (temps != NULL && len > 1) {
-#if NO_FLOAT_PRINTF
-		int r = double_to_str(tf, temps, len);
-#else
-		int r = snprintf(temps, len, "%.2f", tf);
-#endif
-		if (r > 0 && (size_t)r >= len) {
-			temps[len - 1] = '\0';
-		}
-	}
-	return tf;
-}
-
-void dwhw_fmt_temp_volt(uint16_t tempbat, char* temps, char* bats, int len)
-{
-	uint8_t temp = tempbat >> 8;
-	uint8_t bat = (uint8_t)tempbat;
-
-	dwhw_conv_temp(temp, temps, len);
-	strncpy(bats, dwhw_batt_str(bat), len);
-}
-
-uint8_t dwhw_read_battery(void)
-{
-	if (!dwhw_is_ready()) {
-		return 0xff;
-	}
-
-	return (uint8_t)dwt_readtempvbat(); // battery is lower byte
 }
 
 bool dwhw_is_ready(void)
