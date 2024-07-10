@@ -30,6 +30,8 @@ void dwmac_irq_rx_ok_cb(const dwt_cb_data_t* status)
 {
 	// DBG_UWB_IRQ("*** RX %lx flags %x", status->status, status->rx_flags);
 
+	struct rxbuf* rx = &rx_buffer;
+
 #if CONFIG_DECA_DEBUG_IRQ_TIME
 	rx->ts_irq_start = dw_get_systime();
 #endif
@@ -48,8 +50,6 @@ void dwmac_irq_rx_ok_cb(const dwt_cb_data_t* status)
 		}
 		return;
 	}
-
-	struct rxbuf* rx = &rx_buffer;
 
 	rx->len = status->datalength;
 	rx->ts = dw_get_rx_timestamp();

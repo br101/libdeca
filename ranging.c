@@ -8,6 +8,7 @@
  */
 
 #include <math.h>
+#include <stdlib.h>
 
 #include "dwhw.h"
 #include "dwmac.h"
