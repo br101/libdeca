@@ -8,9 +8,6 @@
  */
 
 #include <math.h>
-#include <stdbool.h>
-#include <stdint.h>
-#include <stdlib.h>
 
 #include "dwhw.h"
 #include "dwmac.h"
@@ -28,7 +25,7 @@ static const char* LOG_TAG = "TWR";
 #define TWR_MAX_RETRY		  3
 #define TWR_RETRY_DELAY		  20 /* random with this maximum in ms */
 #define TWR_SEND_REPORT		  1
-#define TWR_SPI_US_PER_BYTE	  2.3 /* us measured with 8MHz DMA for 12 byte */
+#define TWR_SPI_US_PER_BYTE	  2.3 /* TODO: measured with 8MHz DMA for 12 byte */
 
 /*
  * TWR Message definitions
@@ -74,11 +71,6 @@ static uint64_t last_poll_rx_ts;
 
 static void twr_retry(void);
 static void twr_handle_timeout(uint32_t status);
-static bool twr_send_report(uint64_t tag, uint16_t dist, uint16_t cnum,
-							uint64_t final_rx_ts);
-static void twr_callback(uint64_t src, uint64_t dst, uint16_t dist,
-						 uint16_t cnum);
-static uint16_t twr_fixup_distance(int dist);
 static void twr_handle_result(uint64_t src, uint64_t dst, uint16_t dist,
 							  uint16_t cnum, bool reported, bool initiator);
 
@@ -92,7 +84,7 @@ static uint64_t twr_my_mac(uint64_t other_addr)
 }
 
 /*
- * Essential TWR messages
+ * TWR messages
  */
 
 /* TAG -> ANCOR */
@@ -177,8 +169,8 @@ static bool twr_send_ss_response(uint64_t tag, uint64_t poll_rx_ts)
 	if (res) {
 		DBG_UWB("Sent SS Response to " LADDR_FMT " after %dus", LADDR_PAR(tag),
 				(int)DTU_TO_US(resp_tx_time - poll_rx_ts));
-		LOG_DBG_TS("\tPoll RX TS:\t", poll_rx_ts);
-		LOG_DBG_TS("\tResp TX TS:\t", resp_tx_time);
+		// LOG_DBG_TS("\tPoll RX TS:\t", poll_rx_ts);
+		// LOG_DBG_TS("\tResp TX TS:\t", resp_tx_time);
 		expected_msg = 0;
 	} else {
 		LOG_ERR("Failed to send Response to " LADDR_FMT, LADDR_PAR(tag));
@@ -186,30 +178,6 @@ static bool twr_send_ss_response(uint64_t tag, uint64_t poll_rx_ts)
 	}
 
 	return res;
-}
-
-static void twr_handle_ss_response(const struct rxbuf* rx, uint64_t src)
-{
-	const struct twr_msg_ss_resp* msg = dwprot_get_payload(rx->buf);
-	uint32_t poll_tx_ts = dwt_readtxtimestamplo32();
-	uint32_t resp_rx_ts = (uint32_t)rx->ts;
-
-	uint32_t rtd_init = resp_rx_ts - poll_tx_ts;
-	uint32_t rtd_resp = msg->resp_tx_ts - msg->poll_rx_ts;
-
-#if CONFIG_DECA_USE_CARRIERINTEG
-	float clockOffsetRatio = -dwphy_get_rx_clock_offset_ci(rx->ci) / 1.0e6;
-#else
-	float clockOffsetRatio
-		= ((float)dwt_readclockoffset()) / (uint32_t)(1 << 26);
-#endif
-
-	double tof
-		= DTU_TO_PS((rtd_init - rtd_resp * (1 - clockOffsetRatio)) / 2.0);
-	int dist = TIME_TO_DISTANCE(tof) * 100;
-
-	dist = twr_fixup_distance(dist);
-	twr_handle_result(twr_my_mac(src), src, dist, twr_cnum, false, true);
 }
 
 /* TAG -> ANCOR */
@@ -249,9 +217,9 @@ static bool twr_send_final(uint64_t ancor, uint64_t resp_rx_ts)
 	if (res) {
 		DBG_UWB("Sent Final to " LADDR_FMT " after %dus", LADDR_PAR(ancor),
 				(int)DTU_TO_US(final_tx_time - resp_rx_ts));
-		//  LOG_DBG_TS("\tPoll TX TS:\t", poll_tx_ts);
-		//  LOG_DBG_TS("\tResp RX TS:\t", resp_rx_ts);
-		//  LOG_DBG_TS("\tFina TX TS:\t", final_tx_time);
+		// LOG_DBG_TS("\tPoll TX TS:\t", poll_tx_ts);
+		// LOG_DBG_TS("\tResp RX TS:\t", resp_rx_ts);
+		// LOG_DBG_TS("\tFina TX TS:\t", final_tx_time);
 		expected_msg = TWR_SEND_REPORT ? TWR_MSG_REPO : 0;
 	} else {
 		LOG_ERR("Failed to send Final");
@@ -270,6 +238,39 @@ static bool twr_send_final(uint64_t ancor, uint64_t resp_rx_ts)
 	return res;
 }
 
+/* ANCOR -> TAG */
+static bool twr_send_report(uint64_t tag, uint16_t dist, uint16_t cnum,
+							uint64_t final_rx_ts)
+{
+	struct txbuf* tx = dwmac_txbuf_get();
+	if (tx == NULL) {
+		return false;
+	}
+
+	expected_msg = 0;
+
+	struct twr_msg_report* msg
+		= dwprot_prepare(tx, sizeof(struct twr_msg_report), TWR_MSG_REPO, tag);
+	msg->cnum = cnum;
+	msg->dist = dist;
+
+	uint64_t rep_tx_time = (final_rx_ts + twr_delay_dtu) & DTU_DELAYEDTRX_MASK;
+	dwmac_tx_set_txtime(tx, rep_tx_time);
+
+	bool res = dwmac_tx_queue(tx);
+	LOG_TX_RES(res, "Report to " LADDR_FMT ": distance %u cm", LADDR_PAR(tag),
+			   dist);
+
+	// we have been the destination of this TWR sequence
+	twr_handle_result(tag, twr_my_mac(tag), dist, cnum, false, false);
+
+	return res;
+}
+
+/*
+ * Distance calculation
+ */
+
 static uint16_t twr_fixup_distance(int dist)
 {
 	if (dist <= -100 || dist > TWR_FAILED_VALUE) { // out of range: -1m - 655m
@@ -280,36 +281,6 @@ static uint16_t twr_fixup_distance(int dist)
 		return 0;
 	} else {
 		return dist;
-	}
-}
-
-static void twr_handle_result(uint64_t src, uint64_t dst, uint16_t dist,
-							  uint16_t cnum, bool reported, bool initiator)
-{
-	if (dist == TWR_FAILED_VALUE) {
-		LOG_ERR("#%d " LADDR_FMT " -> " LADDR_FMT
-				": Distance calculation failed %s",
-				cnum, LADDR_PAR(src), LADDR_PAR(dst), reported ? "REP" : "");
-		if (initiator) {
-			twr_retry();
-		}
-	} else if (dist == 0) {
-		// distance reported as 0, may be too close, or may be failed: retry
-		LOG_INF("#%d " LADDR_FMT " -> " LADDR_FMT ": %u cm %s", cnum,
-				LADDR_PAR(src), LADDR_PAR(dst), dist, reported ? "REP" : "");
-		if (initiator) {
-			twr_retry();
-		}
-	} else if (dist == TWR_OK_VALUE) {
-		// this is on initiator side when no reports are expected, we don't know
-		// the distance
-		LOG_INF("#%d " LADDR_FMT " -> " LADDR_FMT ": OK", cnum, LADDR_PAR(src),
-				LADDR_PAR(dst));
-	} else {
-		LOG_INF("#%d " LADDR_FMT " -> " LADDR_FMT ": %u cm %s", cnum,
-				LADDR_PAR(src), LADDR_PAR(dst), dist, reported ? "REP" : "");
-		twr_callback(src, dst, dist, cnum);
-		in_progress = false;
 	}
 }
 
@@ -359,29 +330,9 @@ int twr_distance_calculation(uint32_t poll_rx_ts, uint32_t resp_tx_ts,
 	return dist;
 }
 
-/* ANCOR */
-static void twr_handle_final(const struct twr_msg_final* msg_final,
-							 uint64_t final_rx_ts, uint64_t src)
-{
-	DBG_UWB("Received Final from " LADDR_FMT, LADDR_PAR(src));
-
-	expected_msg = 0;
-	uint32_t resp_tx_ts = dwt_readtxtimestamplo32();
-
-	int dist
-		= twr_distance_calculation(last_poll_rx_ts, resp_tx_ts, final_rx_ts,
-								   msg_final->round, msg_final->delay);
-	dist = twr_fixup_distance(dist);
-
-#if TWR_SEND_REPORT
-	// result will be handled after sending the report (time critical)
-	twr_send_report(src, dist, msg_final->cnum, final_rx_ts);
-#else
-	// add result. we have been the destination of this TWR sequence
-	twr_handle_result(src, twr_my_mac(src), dist, msg_final->cnum, false,
-					  false);
-#endif
-}
+/*
+ * Management
+ */
 
 static void twr_callback(uint64_t src, uint64_t dst, uint16_t dist,
 						 uint16_t cnum)
@@ -406,68 +357,81 @@ static void twr_retry(void)
 	}
 }
 
-bool twr_start(uint64_t dst)
+static void twr_handle_timeout(uint32_t status)
 {
-	if (!dwhw_is_ready()) {
-		return false;
+	LOG_ERR("RX timeout from " LADDR_FMT, LADDR_PAR(twr_dst));
+	if (expected_msg == TWR_MSG_RESP || expected_msg == TWR_MSG_REPO
+		|| expected_msg == TWR_MSG_SSRESP) {
+		/* The TAG (Initiator) side can retry the whole exchange */
+		twr_retry();
+	} else if (expected_msg == TWR_MSG_FINA) {
+		/* The ANCOR (Passive) side can only log the error */
+		LOG_ERR("RX timeout, did not receive final");
+		// dev_update_state(current_anc_idx, TWR_FAIL);
+		expected_msg = 0;
+		in_progress = false;
 	}
-
-	twr_dst = dst;
-	single_sided = false;
-	twr_cnum++;
-	in_progress = true;
-	retry = 0;
-	return twr_send_poll(twr_dst);
 }
 
-bool twr_start_ss(uint64_t dst)
+static void twr_handle_result(uint64_t src, uint64_t dst, uint16_t dist,
+							  uint16_t cnum, bool reported, bool initiator)
 {
-	if (!dwhw_is_ready()) {
-		return false;
+	if (dist == TWR_FAILED_VALUE) {
+		LOG_ERR("#%d " LADDR_FMT " -> " LADDR_FMT
+				": Distance calculation failed %s",
+				cnum, LADDR_PAR(src), LADDR_PAR(dst), reported ? "REP" : "");
+		if (initiator) {
+			twr_retry();
+		}
+	} else if (dist == 0) {
+		// distance reported as 0, may be too close, or may be failed: retry
+		LOG_INF("#%d " LADDR_FMT " -> " LADDR_FMT ": %u cm %s", cnum,
+				LADDR_PAR(src), LADDR_PAR(dst), dist, reported ? "REP" : "");
+		if (initiator) {
+			twr_retry();
+		}
+	} else if (dist == TWR_OK_VALUE) {
+		// this is on initiator side when no reports are expected, we don't know
+		// the distance
+		LOG_INF("#%d " LADDR_FMT " -> " LADDR_FMT ": OK", cnum, LADDR_PAR(src),
+				LADDR_PAR(dst));
+	} else {
+		LOG_INF("#%d " LADDR_FMT " -> " LADDR_FMT ": %u cm %s", cnum,
+				LADDR_PAR(src), LADDR_PAR(dst), dist, reported ? "REP" : "");
+		twr_callback(src, dst, dist, cnum);
+		in_progress = false;
 	}
-
-	twr_dst = dst;
-	single_sided = true;
-	twr_cnum++;
-	in_progress = true;
-	retry = 0;
-	return twr_send_poll(twr_dst);
 }
 
 /*
- * Report messages
+ * Message handlers
  */
 
-/* ANCOR -> TAG */
-static bool twr_send_report(uint64_t tag, uint16_t dist, uint16_t cnum,
-							uint64_t final_rx_ts)
+/* ANCOR */
+static void twr_handle_final(const struct twr_msg_final* msg_final,
+							 uint64_t final_rx_ts, uint64_t src)
 {
-	struct txbuf* tx = dwmac_txbuf_get();
-	if (tx == NULL) {
-		return false;
-	}
+	DBG_UWB("Received Final from " LADDR_FMT, LADDR_PAR(src));
 
 	expected_msg = 0;
+	uint32_t resp_tx_ts = dwt_readtxtimestamplo32();
 
-	struct twr_msg_report* msg
-		= dwprot_prepare(tx, sizeof(struct twr_msg_report), TWR_MSG_REPO, tag);
-	msg->cnum = cnum;
-	msg->dist = dist;
+	int dist
+		= twr_distance_calculation(last_poll_rx_ts, resp_tx_ts, final_rx_ts,
+								   msg_final->round, msg_final->delay);
+	dist = twr_fixup_distance(dist);
 
-	uint64_t rep_tx_time = (final_rx_ts + twr_delay_dtu) & DTU_DELAYEDTRX_MASK;
-	dwmac_tx_set_txtime(tx, rep_tx_time);
-
-	bool res = dwmac_tx_queue(tx);
-	LOG_TX_RES(res, "Report to " LADDR_FMT ": distance %u cm", LADDR_PAR(tag),
-			   dist);
-
-	// we have been the destination of this TWR sequence
-	twr_handle_result(tag, twr_my_mac(tag), dist, cnum, false, false);
-
-	return res;
+#if TWR_SEND_REPORT
+	// result will be handled after sending the report (time critical)
+	twr_send_report(src, dist, msg_final->cnum, final_rx_ts);
+#else
+	// add result. we have been the destination of this TWR sequence
+	twr_handle_result(src, twr_my_mac(src), dist, msg_final->cnum, false,
+					  false);
+#endif
 }
 
-/* TAG or MASTER */
+/* TAG */
 static void twr_handle_report(const struct twr_msg_report* msg, uint64_t src)
 {
 	/* no more messages expected */
@@ -475,6 +439,30 @@ static void twr_handle_report(const struct twr_msg_report* msg, uint64_t src)
 
 	/* distance back to me (tag) */
 	twr_handle_result(twr_my_mac(src), src, msg->dist, msg->cnum, true, true);
+}
+
+static void twr_handle_ss_response(const struct rxbuf* rx, uint64_t src)
+{
+	const struct twr_msg_ss_resp* msg = dwprot_get_payload(rx->buf);
+	uint32_t poll_tx_ts = dwt_readtxtimestamplo32();
+	uint32_t resp_rx_ts = (uint32_t)rx->ts;
+
+	uint32_t rtd_init = resp_rx_ts - poll_tx_ts;
+	uint32_t rtd_resp = msg->resp_tx_ts - msg->poll_rx_ts;
+
+#if CONFIG_DECA_USE_CARRIERINTEG
+	float clockOffsetRatio = -dwphy_get_rx_clock_offset_ci(rx->ci) / 1.0e6;
+#else
+	float clockOffsetRatio
+		= ((float)dwt_readclockoffset()) / (uint32_t)(1 << 26);
+#endif
+
+	double tof
+		= DTU_TO_PS((rtd_init - rtd_resp * (1 - clockOffsetRatio)) / 2.0);
+	int dist = TIME_TO_DISTANCE(tof) * 100;
+
+	dist = twr_fixup_distance(dist);
+	twr_handle_result(twr_my_mac(src), src, dist, twr_cnum, false, true);
 }
 
 static size_t twr_get_msg_len(uint8_t func)
@@ -495,10 +483,6 @@ static size_t twr_get_msg_len(uint8_t func)
 	}
 	return 0;
 }
-
-/*
- * MAC layer / protocol callbacks
- */
 
 void twr_handle_message(const struct rxbuf* rx)
 {
@@ -543,26 +527,9 @@ void twr_handle_message(const struct rxbuf* rx)
 	}
 }
 
-static void twr_handle_timeout(uint32_t status)
-{
-	LOG_ERR("RX timeout from " LADDR_FMT, LADDR_PAR(twr_dst));
-	if (expected_msg == TWR_MSG_RESP || expected_msg == TWR_MSG_REPO
-		|| expected_msg == TWR_MSG_SSRESP) {
-		/* The TAG (Initiator) side can retry the whole exchange */
-		twr_retry();
-	} else if (expected_msg == TWR_MSG_FINA) {
-		/* The ANCOR (Passive) side can only log the error */
-		LOG_ERR("RX timeout, did not receive final");
-		// dev_update_state(current_anc_idx, TWR_FAIL);
-		expected_msg = 0;
-		in_progress = false;
-	}
-}
-
-bool twr_in_progress(void)
-{
-	return in_progress;
-}
+/*
+ * API
+ */
 
 void twr_init(uint8_t rate_dw, uint8_t plen_dw, uint8_t prf_dw,
 			  uint32_t processing_delay_us)
@@ -638,6 +605,34 @@ void twr_init(uint8_t rate_dw, uint8_t plen_dw, uint8_t prf_dw,
 #endif
 }
 
+bool twr_start(uint64_t dst)
+{
+	if (!dwhw_is_ready()) {
+		return false;
+	}
+
+	twr_dst = dst;
+	single_sided = false;
+	twr_cnum++;
+	in_progress = true;
+	retry = 0;
+	return twr_send_poll(twr_dst);
+}
+
+bool twr_start_ss(uint64_t dst)
+{
+	if (!dwhw_is_ready()) {
+		return false;
+	}
+
+	twr_dst = dst;
+	single_sided = true;
+	twr_cnum++;
+	in_progress = true;
+	retry = 0;
+	return twr_send_poll(twr_dst);
+}
+
 void twr_cancel(void)
 {
 	in_progress = false;
@@ -648,4 +643,9 @@ void twr_cancel(void)
 void twr_set_observer(twr_cb_t cb)
 {
 	twr_observer_cb = cb;
+}
+
+bool twr_in_progress(void)
+{
+	return in_progress;
 }
