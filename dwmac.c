@@ -64,8 +64,7 @@ bool dwmac_init(uint16_t mypanId, uint16_t myAddr, uint16_t rx_timeout_sec,
 
 	LOG_INF("Init PANID: " ADDR_FMT " MAC: " ADDR_FMT, panId, macAddr);
 
-	/* frame filtering */
-
+	/* frame filtering OFF */
 	dwt_setaddress16(macAddr);
 	dwt_setpanid(panId);
 	dwt_configureframefilter(DWT_FF_DISABLE, 0);
@@ -90,7 +89,8 @@ bool dwmac_init(uint16_t mypanId, uint16_t myAddr, uint16_t rx_timeout_sec,
 #if CONFIG_DECA_DEBUG_FRAME_FILTER
 						 | DWT_INT_ARFE_BIT_MASK
 #endif
-					 , 0, DWT_ENABLE_INT_ONLY);
+					 ,
+					 0, DWT_ENABLE_INT_ONLY);
 #else
 	dwt_setcallbacks(dwmac_irq_tx_done_cb, dwmac_irq_rx_ok_cb,
 					 dwmac_irq_rx_to_cb, dwmac_irq_err_cb, dwmac_irq_spi_err_cb,
@@ -434,16 +434,6 @@ void dwmac_handle_rx_frame(const struct rxbuf* rx)
 
 #if CONFIG_DECA_READ_RXDIAG
 	LOG_INF("DIAG preamb %d", rx->diag.rxPreamCount);
-#endif
-
-#if 0
-		/* check duplicate sequence number and count RX packet */
-		bool ok = dwdev_rx_seq_check(rx->u.s.hdr.src, rx->u.s.hdr.seqNo);
-		if (!ok) {
-			LOG_INF("Discard duplicate seqno %d from " ADDR_FMT,
-					rx->u.s.hdr.seqNo, rx->u.s.hdr.src);
-			break;
-		}
 #endif
 
 #if CONFIG_DECA_XTAL_TRIM
