@@ -89,25 +89,25 @@ void sync_handle_msg(const struct rxbuf* rx)
 	LOG_DBG("Received SYNC %lu from " LADDR_FMT, msg->seq_no, LADDR_PAR(src));
 
 #if DWMAC_USE_CARRIERINTEG
-	float skewci = dwphy_get_rx_clock_offset_ci(rx->ci) * -1.0;
+	float skew = dwphy_get_rx_clock_offset_ci(rx->ci) * -1.0;
 #else
-	float skewci = 0.0;
+	float skew = (float)dwt_readclockoffset() / (uint32_t)(1 << 26) * 1.0e6;
 #endif
 
 #if DEBUG && NO_FLOAT_PRINTF
 	LOG_DBG("SYNC #%d " ADDR_FMT " " DWT_FMT " " DWT_FMT " %s %s",
 			mb->s.hdr.seqNo, mb->s.hdr.src, DWT_PAR(tx_ts), DWT_PAR(rx->ts),
-			double_to_sstr(skewci));
+			double_to_sstr(skew));
 #else
-	LOG_DBG("SYNC LONG #%lu " LADDR_FMT " " DWT_FMT " " DWT_FMT " %.2f",
+	LOG_DBG("SYNC LONG #%lu " LADDR_FMT " " DWT_FMT " " DWT_FMT " %f",
 			msg->seq_no, LADDR_PAR(src), DWT_PAR(msg->tx_ts), DWT_PAR(rx->ts),
-			skewci);
+			skew);
 #endif
 
 	uint64_t rx_ts = dw_timestamp_extend(rx->ts);
 
 	if (sync_cb) {
-		sync_cb(src, msg->seq_no, msg->tx_ts, rx_ts, skewci);
+		sync_cb(src, msg->seq_no, msg->tx_ts, rx_ts, skew);
 	}
 }
 
