@@ -1,4 +1,4 @@
-# libdeca - Library for Qorvo/Decawave DW3000
+# libdeca - UWB Library for Qorvo/Decawave DW3000
 
 This is a library with convenient functions and abstractions on top of the API provided by `decadriver` and `dwt_uwb_driver`.
 
@@ -12,6 +12,7 @@ It provides:
  * Helpers for converting time units
  * A simple to use implementation of two-way ranging (TWR)
  * Some definitions for IEEE 802.15.4 frame formats
+ * Blink and Sync messages
 
 Most of the code is pure platform-independent C code, and can be used in anywhere, but IRQ handling is platform specific and implemented for:
 
