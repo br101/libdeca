@@ -1,0 +1,43 @@
+menu "libdeca"
+
+    config DECA_USE_CARRIERINTEG
+        bool "Store carrier integrator value with each received packet"
+
+    config DECA_READ_RXDIAG
+        bool "Include RX diagnostic data with each received packet"
+
+    config DECA_XTAL_TRIM
+        bool "Use XTAL trimming to compensate clock offset to sender (warning!)"
+        help
+            Warning: This tunes to the clock of ONE other sender, but it can
+            reduce reception of other senders with a different clock offset!
+
+    menu "Debugging"
+
+        config DECA_DEBUG_IRQ_TIME
+            bool "Debug output of time between RX and IRQ and handler"
+
+        config DECA_DEBUG_RX_STATUS
+            bool "Output RX status flags"
+
+        config DECA_DEBUG_RX_DUMP
+            bool "Dump received packets"
+
+        config DECA_DEBUG_TX_DUMP
+            bool "Dump transmitted packets"
+
+        config DECA_DEBUG_TX_TIME
+            bool "Output TX times"
+
+        config DECA_DEBUG_FRAME_FILTER
+            bool "Log filtered frames"
+
+        config DECA_DEBUG_OUTPUT_IRQ
+            bool "Log output from callbacks in IRQ context (warning!)"
+            help
+                Warning: Logging in IRQ context can slow down the system too
+                much and is generally not recommended!
+
+    endmenu
+
+endmenu

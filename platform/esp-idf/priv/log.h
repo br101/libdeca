@@ -21,4 +21,9 @@
 
 #define LOG_INF_IRQ(...) ESP_DRAM_LOGI(LOG_TAG, __VA_ARGS__)
 #define LOG_ERR_IRQ(...) ESP_DRAM_LOGE(LOG_TAG, __VA_ARGS__)
+
+#if CONFIG_DECA_DEBUG_OUTPUT_IRQ
 #define DBG_UWB_IRQ(...) ESP_DRAM_LOGI(LOG_TAG, __VA_ARGS__)
+#else
+#define DBG_UWB_IRQ(...) // don't log
+#endif

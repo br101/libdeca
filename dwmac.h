@@ -16,6 +16,10 @@
 
 #include <deca_device_api.h>
 
+#if ESP_PLATFORM
+#include <sdkconfig.h>
+#endif
+
 /* Read the carrier integrator value for each received frame and include it in
  * the RX buffer */
 #ifndef CONFIG_DECA_USE_CARRIERINTEG
@@ -34,12 +38,35 @@
 #define CONFIG_DECA_XTAL_TRIM 0
 #endif
 
-#define CONFIG_DECA_DEBUG_IRQ_TIME	   0
-#define CONFIG_DECA_DEBUG_RX_DUMP	   0
-#define CONFIG_DECA_DEBUG_RX_STATUS	   0
-#define CONFIG_DECA_DEBUG_TX_DUMP	   0
-#define CONFIG_DECA_DEBUG_TX_TIME	   0
-#define CONFIG_DECA_DEBUG_FRAME_FILTER 1
+/* Debugging configs */
+
+#ifndef CONFIG_DECA_DEBUG_IRQ_TIME
+#define CONFIG_DECA_DEBUG_IRQ_TIME 0
+#endif
+
+#ifndef CONFIG_DECA_DEBUG_RX_DUMP
+#define CONFIG_DECA_DEBUG_RX_DUMP 0
+#endif
+
+#ifndef CONFIG_DECA_DEBUG_RX_STATUS
+#define CONFIG_DECA_DEBUG_RX_STATUS 0
+#endif
+
+#ifndef CONFIG_DECA_DEBUG_TX_DUMP
+#define CONFIG_DECA_DEBUG_TX_DUMP 0
+#endif
+
+#ifndef CONFIG_DECA_DEBUG_TX_TIME
+#define CONFIG_DECA_DEBUG_TX_TIME 0
+#endif
+
+#ifndef CONFIG_DECA_DEBUG_FRAME_FILTER
+#define CONFIG_DECA_DEBUG_FRAME_FILTER 0
+#endif
+
+#ifndef CONFIG_DECA_DEBUG_OUTPUT_IRQ
+#define CONFIG_DECA_DEBUG_OUTPUT_IRQ 0
+#endif
 
 /* Buffer length is optimized for FIRA at the moment */
 #define DWMAC_RXBUF_LEN 70
