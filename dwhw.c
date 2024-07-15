@@ -77,6 +77,7 @@ void dwhw_sleep(void)
 {
 	if (!dwchip_ready) {
 		LOG_ERR("not present or already sleeping");
+		dw3000_hw_fini();
 		return;
 	}
 
@@ -92,10 +93,16 @@ void dwhw_sleep(void)
 	 * - enable sleep mode */
 	dwt_configuresleep(DWT_CONFIG, DWT_SLP_EN | DWT_WAKE_CSN | DWT_WAKE_WUP);
 	dwt_entersleep(DWT_DW_IDLE);
+
+	/* While in DEEPSLEEP power should not be applied to GPIO, SPICLK or
+	SPIMISO pins as this will cause an increase in leakage current */
+	dw3000_hw_fini();
 }
 
 bool dwhw_wakeup(void)
 {
+	dw3000_hw_reinit();
+
 	if (dwchip_ready) {
 		LOG_ERR("Already woke up?");
 		return false;
