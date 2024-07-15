@@ -609,6 +609,7 @@ void twr_init(uint8_t rate_dw, uint8_t plen_dw, uint8_t prf_dw,
 bool twr_start(uint64_t dst)
 {
 	if (!dwhw_is_ready()) {
+		LOG_ERR("Not ready");
 		return false;
 	}
 
@@ -623,6 +624,7 @@ bool twr_start(uint64_t dst)
 bool twr_start_ss(uint64_t dst)
 {
 	if (!dwhw_is_ready()) {
+		LOG_ERR("Not ready");
 		return false;
 	}
 

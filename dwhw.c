@@ -7,8 +7,8 @@
  * Version 3. See the file LICENSE.txt for more details.
  */
 
-#include <deca_version.h>
 #include <deca_device_api.h>
+#include <deca_version.h>
 #include <dw3000_hw.h>
 #include <dw3000_spi.h>
 
@@ -90,8 +90,8 @@ void dwhw_sleep(void)
 	 * - wakeup on CS pin
 	 * - wakeup on WAKEUP
 	 * - enable sleep mode */
-	dwt_configuresleep(0, DWT_SLP_EN | DWT_WAKE_CSN | DWT_WAKE_WUP);
-	dwt_entersleep(DWT_DW_INIT);
+	dwt_configuresleep(DWT_CONFIG, DWT_SLP_EN | DWT_WAKE_CSN | DWT_WAKE_WUP);
+	dwt_entersleep(DWT_DW_IDLE);
 }
 
 bool dwhw_wakeup(void)
@@ -101,14 +101,11 @@ bool dwhw_wakeup(void)
 		return false;
 	}
 
-	LOG_INF("Wakeup");
 	dw3000_hw_wakeup();
 
-	/*
-	 * After asserting the RESET pin, the chip in in INIT state and we need
-	 * to wait until CLKPLL locked and IDLE state has been reached.
+	/* TODO: Wait for SPI ready event
 	 *
-	 * Also the DW1000 User Manual writes: "Care should be taken not to have
+	 * DW1000 User Manual: "Care should be taken not to have
 	 * an active SPI access in progress at the CLKPLL lock time (i.e. at
 	 * t = 5 μs) when the automatic switch from the INIT state to the IDLE
 	 * state is occurring, because the switch-over of clock source can cause
@@ -121,15 +118,11 @@ bool dwhw_wakeup(void)
 
 	int ret = dwt_check_dev_id();
 	if (ret != DWT_SUCCESS) {
-		LOG_ERR("Failed to read device id after wakeup!");
+		LOG_ERR("Failed to read device ID after wakeup!");
 		return false;
 	}
 
-#ifdef DRIVER_VERSION_HEX // >= 0x060007
-	dwt_softreset(0);
-#else
-	dwt_softreset();
-#endif
+	dwt_restoreconfig();
 
 	dwchip_ready = true;
 	return true;
@@ -137,9 +130,5 @@ bool dwhw_wakeup(void)
 
 bool dwhw_is_ready(void)
 {
-	if (!dwchip_ready) {
-		LOG_ERR("***NOT READY!***");
-		return false;
-	}
-	return true;
+	return dwchip_ready;
 }
