@@ -41,8 +41,8 @@ void blink_handle_msg_short(const struct rxbuf* rx)
 	const struct blink_msg* msg
 		= (struct blink_msg*)(rx->buf + sizeof(struct mac154_hdr_blink_short));
 
-	LOG_DBG("BLINK SHORT #%lu " ADDR_FMT " " DWT_FMT " (%x)", msg->seq_no,
-			bh->src, DWT_PAR(rx->ts), msg->battery);
+	LOG_DBG("BLINK #%lu " ADDR_FMT " " DWT_FMT " (%x)", msg->seq_no, bh->src,
+			DWT_PAR(rx->ts), msg->battery);
 
 	uint64_t rx_ts = dw_timestamp_extend(rx->ts);
 
@@ -72,7 +72,7 @@ bool blink_send_short(uint16_t src)
 	msg->battery = 0; // TODO plat_get_battery();
 
 	bool res = dwmac_tx_queue(tx);
-	LOG_TX_RES(res, "BLINK SHORT #%lu", msg->seq_no);
+	LOG_TX_RES(res, "BLINK #%lu " ADDR_FMT, msg->seq_no, src);
 	return res;
 }
 
@@ -87,7 +87,7 @@ void blink_handle_msg_long(const struct rxbuf* rx)
 	const struct blink_msg* msg
 		= (struct blink_msg*)(rx->buf + sizeof(struct mac154_hdr_blink_long));
 
-	LOG_DBG("BLINK LONG #%lu " LADDR_FMT " " DWT_FMT " (%x)", msg->seq_no,
+	LOG_DBG("BLINK #%lu " LADDR_FMT " " DWT_FMT " (%x)", msg->seq_no,
 			LADDR_PAR(bh->src), DWT_PAR(rx->ts), msg->battery);
 
 	uint64_t rx_ts = dw_timestamp_extend(rx->ts);
@@ -118,7 +118,7 @@ bool blink_send_long(uint64_t src)
 	msg->battery = 0; // TODO plat_get_battery();
 
 	bool res = dwmac_tx_queue(tx);
-	LOG_TX_RES(res, "BLINK LONG #%lu", msg->seq_no);
+	LOG_TX_RES(res, "BLINK #%lu " LADDR_FMT, msg->seq_no, LADDR_PAR(src));
 	return res;
 }
 
