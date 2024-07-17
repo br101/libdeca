@@ -13,6 +13,7 @@
 #include <dw3000_spi.h>
 
 #include "dwhw.h"
+#include "dwmac.h"
 #include "log.h"
 
 #ifdef DRIVER_VERSION_HEX // >= 0x060007
@@ -53,9 +54,9 @@ bool dwhw_init(void)
 	int cnt = 1000;
 	while (!dwt_checkidlerc() && cnt-- > 0) {
 		deca_sleep(1);
-	};
+	}
 	if (cnt <= 0) {
-		LOG_ERR("did not leave IDLE state");
+		LOG_ERR("Init did not leave IDLE state");
 		return false;
 	}
 
@@ -110,18 +111,7 @@ bool dwhw_wakeup(void)
 
 	dw3000_hw_wakeup();
 
-	/* TODO: Wait for SPI ready event
-	 *
-	 * DW1000 User Manual: "Care should be taken not to have
-	 * an active SPI access in progress at the CLKPLL lock time (i.e. at
-	 * t = 5 μs) when the automatic switch from the INIT state to the IDLE
-	 * state is occurring, because the switch-over of clock source can cause
-	 * bit errors in the SPI transactions.
-	 *
-	 * Or from DWM1001-Dev Simple Examples "it takes ~35us in total for the
-	 * DW1000 to lock the PLL, download AON and go to IDLE state"
-	 */
-	deca_sleep(1);
+	dwt_restoreconfig();
 
 	int ret = dwt_check_dev_id();
 	if (ret != DWT_SUCCESS) {
@@ -129,8 +119,18 @@ bool dwhw_wakeup(void)
 		return false;
 	}
 
-	dwt_restoreconfig();
+	/* Wait for device to become ready (IDLE state) */
+	int cnt = 1000;
+	while (!dwt_checkidlerc() && cnt-- > 0) {
+		deca_sleep(1);
+	}
+	if (cnt <= 0) {
+		LOG_ERR("Wakeup did not leave IDLE state");
+		return false;
+	}
 
+	dw3000_spi_speed_fast();
+	dwmac_cleanup_sleep_after_tx();
 	dwchip_ready = true;
 	return true;
 }
@@ -138,4 +138,10 @@ bool dwhw_wakeup(void)
 bool dwhw_is_ready(void)
 {
 	return dwchip_ready;
+}
+
+void dwhw_sleep_after_tx(void)
+{
+	dwchip_ready = false;
+	dw3000_hw_fini();
 }

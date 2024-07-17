@@ -49,7 +49,6 @@ void test_twr(void)
   // decadriver init
   dw3000_hw_init(&dw_hw_cfg);
   dw3000_hw_reset();
-  dw3000_hw_init_interrupt();
 
   // libdeca init
   dwhw_init();

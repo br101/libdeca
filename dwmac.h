@@ -106,6 +106,7 @@ struct txbuf {
 	bool resp;
 	bool resp_multi; // multiple replies expected
 	bool ranging;
+	bool sleep_after_tx;
 	uint16_t timeout;
 	int retries;
 	uint64_t txtime;	 // DTU
@@ -132,6 +133,7 @@ void dwmac_tx_expect_multiple_responses(struct txbuf* tx);
 void dwmac_tx_set_tx_timeout(struct txbuf* tx, uint16_t timeout);
 void dwmac_tx_set_frame_timeout(struct txbuf* tx, uint16_t to);
 void dwmac_tx_set_preamble_timeout(struct txbuf* tx, uint16_t pto);
+void dwmac_tx_set_sleep_after_tx(struct txbuf* tx);
 void dwmac_tx_set_timeout_handler(struct txbuf* tx, deca_to_cb toh);
 void dwmac_tx_set_complete_handler(struct txbuf* tx, void (*h)(void));
 void dwmac_tx_set_txtime(struct txbuf* tx, uint64_t time);
@@ -146,6 +148,7 @@ void dwmac_handle_tx_done(void);
 void dwmac_handle_error(uint32_t status);
 
 void dwmac_rx_unstuck(void);
+void dwmac_cleanup_sleep_after_tx(void);
 
 /* statistics */
 void dwmac_get_cnt(uint32_t* tx_start_cnt, uint32_t* tx_irq_cnt,

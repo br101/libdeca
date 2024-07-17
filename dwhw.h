@@ -16,5 +16,6 @@ bool dwhw_init(void);
 void dwhw_sleep(void);
 bool dwhw_wakeup(void);
 bool dwhw_is_ready(void);
+void dwhw_sleep_after_tx(void);
 
 #endif

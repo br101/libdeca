@@ -105,6 +105,7 @@ bool blink_send_long(uint64_t src)
 	}
 
 	dwmac_tx_prepare(tx, BLINK_LONG_SIZE);
+	dwmac_tx_set_sleep_after_tx(tx);
 
 	struct mac154_hdr_blink_long* bh = (struct mac154_hdr_blink_long*)tx->buf;
 	bh->fc = MAC154_FC_BLINK_LONG;

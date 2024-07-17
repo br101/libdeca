@@ -13,6 +13,7 @@
 #include <deca_device_api.h>
 #include <deca_version.h>
 
+#include "dwhw.h"
 #include "dwmac.h"
 #include "dwphy.h"
 #include "dwtime.h"
@@ -265,6 +266,8 @@ void dwmac_tx_prepare_null(struct txbuf* tx)
 	tx->pto = 0;
 	tx->tx_timeout = DWMAC_DEFAULT_TX_TIMEO;
 	tx->to_cb = NULL;
+	tx->complete_cb = NULL;
+	tx->sleep_after_tx = false;
 }
 
 /* len is without FCS */
@@ -317,6 +320,11 @@ void dwmac_tx_set_preamble_timeout(struct txbuf* tx, uint16_t pto)
 	tx->tx_timeout = CEIL_DIV(us, 1000) + DWMAC_DEFAULT_TX_TIMEO;
 }
 
+void dwmac_tx_set_sleep_after_tx(struct txbuf* tx)
+{
+	tx->sleep_after_tx = true;
+}
+
 void dwmac_tx_set_timeout_handler(struct txbuf* tx, deca_to_cb toh)
 {
 	tx->to_cb = toh;
@@ -356,6 +364,13 @@ bool dwmac_tx_raw(struct txbuf* tx)
 
 	/* make sure we're out of RX mode before initiating TX */
 	dwt_forcetrxoff();
+
+	if (tx->sleep_after_tx) {
+		dwt_configuresleep(DWT_CONFIG,
+						   DWT_SLP_EN | DWT_WAKE_CSN | DWT_WAKE_WUP);
+		dwt_entersleepaftertx(1);
+		dwt_setinterrupt(DWT_INT_TFRS, 0, DWT_DISABLE_INT);
+	}
 
 	if (tx->len > 0) {
 		ret = dwt_writetxdata(tx->len, tx->buf, 0);
@@ -411,6 +426,11 @@ bool dwmac_tx_raw(struct txbuf* tx)
 #if CONFIG_DECA_DEBUG_TX_DUMP
 	LOG_HEXDUMP("TX", tx->buf, tx->len);
 #endif
+
+	if (tx->sleep_after_tx) {
+		dwhw_sleep_after_tx();
+	}
+
 	return true;
 }
 
@@ -464,14 +484,28 @@ void dwmac_handle_rx_timeout(uint32_t status)
 
 void dwmac_handle_tx_done(void)
 {
+	// callback after removing current_tx so we can TX again
+	deca_tx_complete_cb cb = NULL;
 	if (current_tx != NULL && current_tx->complete_cb != NULL) {
-		current_tx->complete_cb();
+		cb = current_tx->complete_cb;
 	}
 
 	// only remove TX if we are not waiting for a RX timeout
 	if (current_tx != NULL && current_tx->pto == 0
 		&& current_tx->timeout == 0) {
 		current_tx = NULL;
+	}
+
+	if (cb) {
+		cb();
+	}
+}
+
+void dwmac_cleanup_sleep_after_tx(void)
+{
+	if (current_tx != NULL && current_tx->sleep_after_tx) {
+		dwt_setinterrupt(DWT_INT_TFRS, 0, DWT_ENABLE_INT);
+		dwmac_handle_tx_done();
 	}
 }
 
