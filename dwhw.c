@@ -88,10 +88,13 @@ void dwhw_sleep(void)
 	dw3000_hw_wakeup_pin_low();
 
 	/* Sleep configuration:
+	 * - run RX calibration (PGFCAL)
+	 * = restore config
 	 * - wakeup on CS pin
 	 * - wakeup on WAKEUP
-	 * - enable sleep mode */
-	dwt_configuresleep(DWT_CONFIG, DWT_SLP_EN | DWT_WAKE_CSN | DWT_WAKE_WUP);
+	 * - enable deep sleep */
+	dwt_configuresleep(DWT_PGFCAL | DWT_CONFIG,
+					   DWT_SLP_EN | DWT_WAKE_CSN | DWT_WAKE_WUP);
 	dwt_entersleep(DWT_DW_IDLE);
 
 	/* While in DEEPSLEEP power should not be applied to GPIO, SPICLK or
