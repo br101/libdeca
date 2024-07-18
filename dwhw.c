@@ -72,6 +72,8 @@ bool dwhw_init(void)
 	return true;
 }
 
+#if CONFIG_DECA_SLEEP_ENABLED
+
 /** Note: While in DEEPSLEEP power should not be applied to GPIO, SPICLK or
 	SPIMISO pins as this will cause an increase in leakage current */
 void dwhw_sleep(void)
@@ -134,6 +136,19 @@ bool dwhw_wakeup(void)
 	dwchip_ready = true;
 	return true;
 }
+
+#else
+
+void dwhw_sleep(void)
+{
+}
+
+bool dwhw_wakeup(void)
+{
+	return true;
+}
+
+#endif
 
 bool dwhw_is_ready(void)
 {

@@ -6,6 +6,10 @@ menu "libdeca"
     config DECA_READ_RXDIAG
         bool "Include RX diagnostic data with each received packet"
 
+    config DECA_SLEEP_ENABLED
+        bool "Enable deep sleep mode"
+        default y
+
     config DECA_XTAL_TRIM
         bool "Use XTAL trimming to compensate clock offset to sender (warning!)"
         help

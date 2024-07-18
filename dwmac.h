@@ -38,6 +38,11 @@
 #define CONFIG_DECA_XTAL_TRIM 0
 #endif
 
+/* Enable deep sleep of DW3000 (default on) */
+#ifndef CONFIG_DECA_SLEEP_ENABLED
+#define CONFIG_DECA_SLEEP_ENABLED 1
+#endif
+
 /* Debugging configs */
 
 #ifndef CONFIG_DECA_DEBUG_IRQ_TIME
