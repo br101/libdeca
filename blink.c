@@ -97,7 +97,7 @@ void blink_handle_msg_long(const struct rxbuf* rx)
 	}
 }
 
-bool blink_send_long(uint64_t src)
+bool blink_send_long(uint64_t src, bool sleep_after_tx)
 {
 	struct txbuf* tx = dwmac_txbuf_get();
 	if (tx == NULL) {
@@ -105,7 +105,9 @@ bool blink_send_long(uint64_t src)
 	}
 
 	dwmac_tx_prepare(tx, BLINK_LONG_SIZE);
-	dwmac_tx_set_sleep_after_tx(tx);
+	if (sleep_after_tx) {
+		dwmac_tx_set_sleep_after_tx(tx);
+	}
 
 	struct mac154_hdr_blink_long* bh = (struct mac154_hdr_blink_long*)tx->buf;
 	bh->fc = MAC154_FC_BLINK_LONG;
