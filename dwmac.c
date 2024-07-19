@@ -51,8 +51,8 @@ extern void dwmac_irq_tx_done_cb(const dwt_cb_data_t* dat);
 extern void dwmac_irq_spi_err_cb(const dwt_cb_data_t* dat);
 extern void dwmac_irq_spi_rdy_cb(const dwt_cb_data_t* dat);
 
-bool dwmac_init(uint16_t mypanId, uint16_t myAddr, uint16_t rx_timeout_sec,
-				deca_rx_cb rx_cb, deca_to_cb to_cb, deca_err_cb err_cb)
+bool dwmac_init(uint16_t mypanId, uint16_t myAddr, deca_rx_cb rx_cb,
+				deca_to_cb to_cb, deca_err_cb err_cb)
 {
 	ASSERT_RET(myAddr != 0 && myAddr != 0xffff);
 
@@ -72,10 +72,6 @@ bool dwmac_init(uint16_t mypanId, uint16_t myAddr, uint16_t rx_timeout_sec,
 
 	/* for 'dwcnt' command */
 	dwt_configeventcounters(1);
-
-	// tx_bufs = bufs_init(DWMAC_TX_QUEUE_LEN, sizeof(struct txbuf));
-
-	// dwmac_plat_init(rx_timeout_sec);
 
 #ifdef DRIVER_VERSION_HEX // >= 0x060007
 	dwt_setcallbacks(dwmac_irq_tx_done_cb, dwmac_irq_rx_ok_cb,
@@ -517,20 +513,6 @@ void dwmac_handle_error(uint32_t status)
 
 	if (dwmac_err_cb != NULL) {
 		dwmac_err_cb(status);
-	}
-}
-
-void dwmac_rx_unstuck(void)
-{
-	/* if we didn't receive for a longer time we suspect
-	 * that the DW1000 got stuck and needs a TRX reset.
-	 * This is only done when we assume to receive something
-	 * often (rx_reenable as on ancors) */
-	rx_stuck_cnt++;
-	if (rx_reenable) {
-		LOG_DBG("RX Timout, force RX enable");
-		dwt_forcetrxoff();
-		dwt_rxenable(DWT_START_RX_IMMEDIATE);
 	}
 }
 

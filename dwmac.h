@@ -117,8 +117,8 @@ struct txbuf {
 	deca_tx_complete_cb complete_cb;
 };
 
-bool dwmac_init(uint16_t mypanId, uint16_t myAddr, uint16_t rx_timeout_sec,
-				deca_rx_cb rx_cb, deca_to_cb to_cb, deca_err_cb err_cb);
+bool dwmac_init(uint16_t mypanId, uint16_t myAddr, deca_rx_cb rx_cb,
+				deca_to_cb to_cb, deca_err_cb err_cb);
 void dwmac_set_frame_filter(void);
 void dwmac_set_mac64(uint64_t mac);
 
@@ -147,7 +147,6 @@ void dwmac_handle_rx_timeout(uint32_t status);
 void dwmac_handle_tx_done(void);
 void dwmac_handle_error(uint32_t status);
 
-void dwmac_rx_unstuck(void);
 void dwmac_cleanup_sleep_after_tx(void);
 
 /* statistics */

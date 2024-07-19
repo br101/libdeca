@@ -54,8 +54,7 @@ void test_twr(void)
   dwhw_init();
   dwphy_config();
   dwphy_set_antenna_delay(DWPHY_ANTENNA_DELAY);
-  dwmac_init(PANID, MAC16, 10, dwprot_rx_handler, your_timeout_handler,
-  			     your_error_handler);
+  dwmac_init(PANID, MAC16, dwprot_rx_handler, your_timeout_handler, your_error_handler);
   dwmac_set_frame_filter();
   twr_init(TWR_PROCESSING_DELAY);
   twr_set_observer(twr_done_cb);
