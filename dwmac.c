@@ -23,6 +23,10 @@
 
 #include "log.h"
 
+#define SLOT_SPI_TIME(_x) (_x * 2.7) /* us TODO: old */
+#define SLOT_PROC_TIME	  500		 /* TODO: now used with systime: only TX */
+#define SLOT_GAP		  5
+
 static const char* LOG_TAG = "DECA";
 
 static uint16_t panId;
@@ -411,8 +415,6 @@ bool dwmac_transmit(struct txbuf* tx)
 	return dwmac_tx_raw(tx);
 }
 
-extern uint64_t dw_irq_time;
-
 void dwmac_handle_rx_frame(const struct rxbuf* rx)
 {
 #if CONFIG_DECA_DEBUG_IRQ_TIME
@@ -497,10 +499,6 @@ void dwmac_handle_error(uint32_t status)
 	}
 }
 
-#define SPI_TIME(_x)   (_x * 2.7) /* us measured with 8MHz no DMA */
-#define SLOT_PROC_TIME 500		  /* TODO: now used with systime: only TX */
-#define SLOT_GAP	   5
-
 /* return tx delay in usec for slot (starting from 1) */
 int dwmac_get_slot_us(size_t pkt_len, int slot_num)
 {
@@ -513,7 +511,7 @@ int dwmac_get_slot_us(size_t pkt_len, int slot_num)
 
 	/* first delay is equal for all slots */
 	int delay = SLOT_PROC_TIME; // constant processing time for RX and TX
-	delay += SPI_TIME(pkt_len);
+	delay += SLOT_SPI_TIME(pkt_len);
 	delay += PKTTIME_TO_USEC(dwphy_calc_preamble_time(plen, prf, rate));
 
 	/* then multiply slot duration by slot number */
