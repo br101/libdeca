@@ -9,6 +9,9 @@
 
 #include <deca_device_api.h>
 #include <deca_version.h>
+#ifdef DW3000_DRIVER_VERSION // == 0x040000
+#include <deca_regs.h>
+#endif
 #include <dw3000_hw.h>
 #include <dw3000_spi.h>
 
@@ -16,12 +19,13 @@
 #include "dwmac.h"
 #include "log.h"
 
+#define DWHW_DEBUG_WAKEUP 0
+
 #ifdef DRIVER_VERSION_HEX // >= 0x060007
 extern const struct dwt_probe_s dw3000_probe_interf;
 #endif
 
 static const char* LOG_TAG = "DECA";
-
 static bool dwchip_ready = false;
 
 bool dwhw_init(void)
@@ -72,8 +76,29 @@ bool dwhw_init(void)
 	return true;
 }
 
-/** Note: While in DEEPSLEEP power should not be applied to GPIO, SPICLK or
-	SPIMISO pins as this will cause an increase in leakage current */
+void dwhw_configure_sleep(void)
+{
+	/* Sleep configuration:
+	 * - run RX calibration (PGFCAL)
+	 * = restore config
+	 * - wakeup on CS pin
+	 * - wakeup on WAKEUP
+	 * - enable deep sleep */
+	dwt_configuresleep(DWT_PGFCAL | DWT_CONFIG,
+					   DWT_SLP_EN | DWT_WAKE_CSN | DWT_WAKE_WUP);
+}
+
+void dwhw_enable_tx_interrupt(bool on)
+{
+	dwt_setinterrupt(
+#ifdef DRIVER_VERSION_HEX // >= 0x060007
+		DWT_INT_TXFRS_BIT_MASK,
+#else
+		DWT_INT_TFRS,
+#endif
+		0, on ? DWT_ENABLE_INT : DWT_DISABLE_INT);
+}
+
 void dwhw_sleep(void)
 {
 	if (!dwchip_ready) {
@@ -87,14 +112,6 @@ void dwhw_sleep(void)
 	/* pull WAKEUP line low, later we will use it for waking up */
 	dw3000_hw_wakeup_pin_low();
 
-	/* Sleep configuration:
-	 * - run RX calibration (PGFCAL)
-	 * = restore config
-	 * - wakeup on CS pin
-	 * - wakeup on WAKEUP
-	 * - enable deep sleep */
-	dwt_configuresleep(DWT_PGFCAL | DWT_CONFIG,
-					   DWT_SLP_EN | DWT_WAKE_CSN | DWT_WAKE_WUP);
 	dwt_entersleep(DWT_DW_IDLE);
 
 	/* While in DEEPSLEEP power should not be applied to GPIO, SPICLK or
@@ -132,6 +149,13 @@ bool dwhw_wakeup(void)
 
 	dw3000_spi_speed_fast();
 	dwmac_cleanup_sleep_after_tx();
+
+#if DWHW_DEBUG_WAKEUP
+	LOG_INF("WAKEUP STATE %lx STATUS %lx ENABLE %lx",
+			dwt_read32bitreg(SYS_STATE_LO_ID), dwt_read32bitreg(SYS_STATUS_ID),
+			dwt_read32bitreg(SYS_ENABLE_LO_ID));
+#endif
+
 	dwchip_ready = true;
 	return true;
 }

@@ -336,10 +336,8 @@ bool dwmac_tx_raw(struct txbuf* tx)
 	dwt_forcetrxoff();
 
 	if (tx->sleep_after_tx) {
-		dwt_configuresleep(DWT_CONFIG,
-						   DWT_SLP_EN | DWT_WAKE_CSN | DWT_WAKE_WUP);
+		dwhw_enable_tx_interrupt(false);
 		dwt_entersleepaftertx(1);
-		dwt_setinterrupt(DWT_INT_TFRS, 0, DWT_DISABLE_INT);
 	}
 
 	if (tx->len > 0) {
@@ -483,7 +481,8 @@ void dwmac_handle_tx_done(void)
 void dwmac_cleanup_sleep_after_tx(void)
 {
 	if (current_tx != NULL && current_tx->sleep_after_tx) {
-		dwt_setinterrupt(DWT_INT_TFRS, 0, DWT_ENABLE_INT);
+		dwt_entersleepaftertx(0); // Disable Sleep after TX!
+		dwhw_enable_tx_interrupt(true);
 		dwmac_handle_tx_done();
 	}
 }

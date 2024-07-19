@@ -17,5 +17,7 @@ void dwhw_sleep(void);
 bool dwhw_wakeup(void);
 bool dwhw_is_ready(void);
 void dwhw_sleep_after_tx(void);
+void dwhw_configure_sleep(void);
+void dwhw_enable_tx_interrupt(bool on);
 
 #endif
