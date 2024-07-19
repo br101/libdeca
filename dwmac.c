@@ -516,17 +516,19 @@ int dwmac_get_slot_us(size_t pkt_len, int slot_num)
 	ASSERT_RET(slot_num > 0);
 	ASSERT_RET(pkt_len > 0);
 
+	uint8_t plen = dwphy_get_plen();
+	uint8_t prf = dwphy_get_prf();
+	uint8_t rate = dwphy_get_rate();
+
 	/* first delay is equal for all slots */
 	int delay = SLOT_PROC_TIME; // constant processing time for RX and TX
 	delay += SPI_TIME(pkt_len);
-	// delay += PKTTIME_TO_USEC(
-	//	dwphy_calc_preamble_time(conf.phy_plen, conf.phy_prf,
-	// conf.phy_rate));
+	delay += PKTTIME_TO_USEC(dwphy_calc_preamble_time(plen, prf, rate));
 
 	/* then multiply slot duration by slot number */
 	slot_num--;
-	int slot_duration = 0; // PKTTIME_TO_USEC(dwphy_calc_packet_time(
-	//	conf.phy_rate, conf.phy_plen, conf.phy_prf, pkt_len));
+	int slot_duration
+		= PKTTIME_TO_USEC(dwphy_calc_packet_time(rate, plen, prf, pkt_len));
 	slot_duration += SLOT_GAP;
 	delay += slot_duration * slot_num;
 
