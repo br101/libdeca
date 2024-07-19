@@ -134,19 +134,9 @@ void dwmac_tx_set_preamble_timeout(struct txbuf* tx, uint16_t pto);
 void dwmac_tx_set_sleep_after_tx(struct txbuf* tx);
 void dwmac_tx_set_timeout_handler(struct txbuf* tx, deca_to_cb toh);
 void dwmac_tx_set_complete_handler(struct txbuf* tx, void (*h)(void));
-
 bool dwmac_transmit(struct txbuf* tx);
 
-/* called from task / scheduler context */
-void dwmac_handle_rx_frame(const struct rxbuf* rx);
-void dwmac_handle_rx_timeout(uint32_t status);
-void dwmac_handle_tx_done(void);
-void dwmac_handle_error(uint32_t status);
-
 void dwmac_cleanup_sleep_after_tx(void);
-
-/** "TDMA" tx time of slot in us, pkt_len including headers */
-int dwmac_get_slot_us(size_t pkt_len, int slot_num);
 
 void dwmac_rx_reenable(void);
 void dwmac_set_rx_reenable(bool b);
@@ -158,8 +148,17 @@ uint16_t dwmac_get_mac16(void);
 uint16_t dwmac_get_panid(void);
 uint64_t dwmac_get_mac64(void);
 
+/** "TDMA" tx time of slot in us, pkt_len including headers */
+int dwmac_get_slot_us(size_t pkt_len, int slot_num);
+
 /* statistics */
 uint32_t dwmac_get_tx_start_cnt(void);
 uint32_t dwmac_get_tx_done_cnt(void); // dwmac_irq.c
+
+/* INTERNAL: called from task / scheduler context */
+void dwmac_handle_rx_frame(const struct rxbuf* rx);
+void dwmac_handle_rx_timeout(uint32_t status);
+void dwmac_handle_tx_done(void);
+void dwmac_handle_error(uint32_t status);
 
 #endif
