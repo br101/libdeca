@@ -15,7 +15,6 @@
 #include <deca_regs.h>
 #endif
 
-#include "dwmac.h"
 #include "dwphy.h"
 #include "dwproto.h"
 
@@ -23,11 +22,11 @@
 
 static const char* LOG_TAG = "DECA";
 
-#define DWPHY_PRF DWT_PRF_64M
-
+#define DWPHY_PRF			DWT_PRF_64M
 #define TEST_EXAMPLE_CONFIG 0
 
 #if TEST_EXAMPLE_CONFIG
+// this is the config used in many decadriver examples
 static dwt_config_t config = {
 	.chan = 5,
 	.txPreambLength = DWT_PLEN_128,
@@ -44,6 +43,7 @@ static dwt_config_t config = {
 	.pdoaMode = DWT_PDOA_M0 /* off */
 };
 #else
+// default config
 static dwt_config_t config = {
 	.chan = 9,
 	.txPreambLength = DWT_PLEN_64,
@@ -137,7 +137,6 @@ static int phy_calc_sfd_timeout(uint8_t plen, uint8_t pac, uint8_t rate)
 
 bool dwphy_config(void)
 {
-
 	if (config.sfdTO == 0) {
 		config.sfdTO = phy_calc_sfd_timeout(config.txPreambLength, config.rxPAC,
 											config.dataRate);
@@ -365,7 +364,8 @@ void dwphy_print_packet_times(void)
 	LOG_INF("        110K        850K        6.8M");
 	LOG_INF("PLEN PRF16 PRF64 PRF16 PRF64 PRF16 PRF64");
 	for (size_t i = 0; i < sizeof(plen_dwt); i++) {
-		LOG_INF("%-4d %5d %5d %5d %5d %5d %5d", dwphy_plen_int(plen_dwt[i]),
+		LOG_INF("%-4d %5lu %5lu %5lu %5lu",
+				dwphy_plen_int(plen_dwt[i]),
 				dwphy_calc_preamble_time(plen_dwt[i], DWT_PRF_16M, DWT_BR_850K),
 				dwphy_calc_preamble_time(plen_dwt[i], DWT_PRF_64M, DWT_BR_850K),
 				dwphy_calc_preamble_time(plen_dwt[i], DWT_PRF_16M, DWT_BR_6M8),
@@ -376,7 +376,7 @@ void dwphy_print_packet_times(void)
 	LOG_INF("Data time in us:");
 	LOG_INF("RATE\t10B\t20B\t40B\t60B\t127B");
 	for (size_t i = 0; i < sizeof(br_dwt); i++) {
-		LOG_INF("%s\t%d\t%d\t%d\t%d\t%d", dwphy_rate_str(br_dwt[i]),
+		LOG_INF("%s\t%llu\t%llu\t%llu\t%llu\t%llu", dwphy_rate_str(br_dwt[i]),
 				dwphy_calc_data_time(br_dwt[i], 10),
 				dwphy_calc_data_time(br_dwt[i], 20),
 				dwphy_calc_data_time(br_dwt[i], 40),

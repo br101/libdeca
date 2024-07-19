@@ -11,7 +11,6 @@
 #define DECA_PHY_H
 
 #include <stdbool.h>
-#include <stddef.h>
 #include <stdint.h>
 
 #include "dwutil.h"
@@ -33,6 +32,7 @@
 bool dwphy_config(void);
 void dwphy_set_antenna_delay(uint16_t antdelay);
 
+/* phy time calculations */
 const char* dwphy_rate_str(uint8_t br);
 int dwphy_rate_int(uint8_t br);
 int dwphy_plen_int(uint8_t pl);
@@ -47,12 +47,14 @@ uint64_t dwphy_calc_packet_time(uint8_t rate_dwt, uint8_t plen_dwt,
 								uint8_t prf_dwt, int data_len);
 int dwphy_usec_to_pac(uint32_t x);
 int dwphy_pac_to_usec(uint16_t pacs);
+int dwphy_get_recommended_preambletimeout(void);
 void dwphy_print_packet_times(void);
 
+/* clock */
 float dwphy_get_rx_clock_offset_ci(int32_t ci);
-int dwphy_get_recommended_preambletimeout(void);
 void dwphy_xtal_trim(void);
 
+/* get / set config */
 void dwphy_set_rate(uint8_t br);
 uint8_t dwphy_get_rate(void);
 void dwphy_set_plen(uint8_t plen);
