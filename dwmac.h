@@ -145,10 +145,6 @@ void dwmac_handle_error(uint32_t status);
 
 void dwmac_cleanup_sleep_after_tx(void);
 
-/* statistics */
-void dwmac_get_cnt(uint32_t* tx_start_cnt, uint32_t* tx_irq_cnt,
-				   uint32_t* rx_timout_cnt);
-
 /** "TDMA" tx time of slot in us, pkt_len including headers */
 int dwmac_get_slot_us(size_t pkt_len, int slot_num);
 
@@ -161,5 +157,9 @@ void dwmac_print_event_counters(void);
 uint16_t dwmac_get_mac16(void);
 uint16_t dwmac_get_panid(void);
 uint64_t dwmac_get_mac64(void);
+
+/* statistics */
+uint32_t dwmac_get_tx_start_cnt(void);
+uint32_t dwmac_get_tx_done_cnt(void); // dwmac_irq.c
 
 #endif

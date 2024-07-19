@@ -33,11 +33,9 @@ static deca_rx_cb dwmac_rx_cb = NULL;
 static deca_to_cb dwmac_to_cb = NULL;
 static deca_err_cb dwmac_err_cb = NULL;
 static uint32_t mac_tx_cnt = 0;
-static uint32_t rx_stuck_cnt = 0;
 static struct txbuf tx_buffer;
 
 /* shared with dwmac_irq.c */
-uint32_t tx_irq_cnt = 0;
 struct rxbuf rx_buffer;
 struct txbuf* current_tx = NULL;
 bool rx_reenable = false;
@@ -499,13 +497,6 @@ void dwmac_handle_error(uint32_t status)
 	}
 }
 
-void dwmac_get_cnt(uint32_t* tx_start, uint32_t* tx_irq, uint32_t* rx_to)
-{
-	*tx_start = mac_tx_cnt;
-	*tx_irq = tx_irq_cnt;
-	*rx_to = rx_stuck_cnt;
-}
-
 #define SPI_TIME(_x)   (_x * 2.7) /* us measured with 8MHz no DMA */
 #define SLOT_PROC_TIME 500		  /* TODO: now used with systime: only TX */
 #define SLOT_GAP	   5
@@ -597,4 +588,9 @@ void dwmac_set_mac64(uint64_t mac)
 {
 	mac64 = mac;
 	dwt_seteui((uint8_t*)&mac64);
+}
+
+uint32_t dwmac_get_tx_start_cnt(void)
+{
+	return mac_tx_cnt;
 }

@@ -18,11 +18,12 @@
 #include "mac802154.h"
 #include "platform/dwmac_task.h"
 
-static const char* LOG_TAG = "DECA";
-extern uint32_t tx_irq_cnt;
 extern struct rxbuf rx_buffer;
 extern struct txbuf* current_tx;
 extern bool rx_reenable;
+
+static const char* LOG_TAG = "DECA";
+static uint32_t tx_done_cnt = 0;
 
 /*** all these functions are called from dwt_isr() in interrupt context ***/
 
@@ -146,7 +147,7 @@ void dwmac_irq_err_cb(const dwt_cb_data_t* dat)
 void dwmac_irq_tx_done_cb(const dwt_cb_data_t* dat)
 {
 	DBG_UWB_IRQ("*** TX Done 0x%lx", dat->status);
-	tx_irq_cnt++;
+	tx_done_cnt++;
 
 	if (current_tx == NULL) {
 		return;
@@ -164,4 +165,9 @@ void dwmac_irq_spi_rdy_cb(const dwt_cb_data_t* dat)
 {
 	LOG_INF_IRQ("*** SPI RDY");
 	// dwt_write32bitreg(SYS_STATUS_ID, SYS_STATUS_SPIRDY_BIT_MASK);
+}
+
+uint32_t dwmac_get_tx_irq_cnt(void)
+{
+	return tx_done_cnt;
 }
