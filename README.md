@@ -57,7 +57,7 @@ void test_twr(void)
   dwmac_init(PANID, MAC16, 10, dwprot_rx_handler, your_timeout_handler,
   			     your_error_handler);
   dwmac_set_frame_filter();
-  twr_init(DWT_BR_6M8, DWT_PLEN_64, DWT_PRF_64M, TWR_PROCESSING_DELAY);
+  twr_init(TWR_PROCESSING_DELAY);
   twr_set_observer(twr_done_cb);
   // two way ranging to 0x0001
   twr_start(0x0001);

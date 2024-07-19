@@ -23,6 +23,8 @@
 
 static const char* LOG_TAG = "DECA";
 
+#define DWPHY_PRF DWT_PRF_64M
+
 #define TEST_EXAMPLE_CONFIG 0
 
 #if TEST_EXAMPLE_CONFIG
@@ -148,25 +150,25 @@ bool dwphy_config(void)
 		}
 	}
 
-	int prf = DWT_PRF_64M;
+	int prf = DWPHY_PRF;
 
 	LOG_INF("config CH %d %s PRF %dMHz Plen %d PAC %d", config.chan,
 			dwphy_rate_str(config.dataRate), dwphy_prf_int(prf),
 			dwphy_plen_int(config.txPreambLength), dwphy_pac_int(config.rxPAC));
 	LOG_INF("config code %d/%d SFD %d", config.txCode, config.rxCode,
 			config.sfdTO);
-	LOG_INF(
-		"PRE %ld (SFD %ld) PHD %ld %dB DATA %d = %d us",
-		PKTTIME_TO_USEC(dwphy_calc_preamble_time(config.txPreambLength, prf,
-												 config.dataRate)
-						- dwphy_calc_sfd_time(prf, config.dataRate)),
-		PKTTIME_TO_USEC(dwphy_calc_sfd_time(prf, config.dataRate)),
-		PKTTIME_TO_USEC(dwphy_calc_phyhdr_time(config.dataRate)),
-		DWMAC_PROTO_SHORT_LEN,
-		(int)PKTTIME_TO_USEC(
-			dwphy_calc_data_time(config.dataRate, DWMAC_PROTO_SHORT_LEN)),
-		(int)PKTTIME_TO_USEC(dwphy_calc_packet_time(
-			config.dataRate, config.txPreambLength, prf, DWMAC_PROTO_SHORT_LEN)));
+	LOG_INF("PRE %ld (SFD %ld) PHD %ld %dB DATA %d = %d us",
+			PKTTIME_TO_USEC(dwphy_calc_preamble_time(config.txPreambLength, prf,
+													 config.dataRate)
+							- dwphy_calc_sfd_time(prf, config.dataRate)),
+			PKTTIME_TO_USEC(dwphy_calc_sfd_time(prf, config.dataRate)),
+			PKTTIME_TO_USEC(dwphy_calc_phyhdr_time(config.dataRate)),
+			DWMAC_PROTO_SHORT_LEN,
+			(int)PKTTIME_TO_USEC(
+				dwphy_calc_data_time(config.dataRate, DWMAC_PROTO_SHORT_LEN)),
+			(int)PKTTIME_TO_USEC(
+				dwphy_calc_packet_time(config.dataRate, config.txPreambLength,
+									   prf, DWMAC_PROTO_SHORT_LEN)));
 
 	if (!check_preamble_len(config.txPreambLength, config.dataRate)) {
 		LOG_ERR("preamble length out of recommended range!");
@@ -483,4 +485,29 @@ void dwphy_xtal_trim(void)
 			// LOG_INF("Set XTAL trim %d", xtalTrim);
 		}
 	}
+}
+
+void dwphy_set_rate(uint8_t br)
+{
+	config.dataRate = br;
+}
+
+uint8_t dwphy_get_rate(void)
+{
+	return config.dataRate;
+}
+
+void dwphy_set_plen(uint8_t plen)
+{
+	config.txPreambLength = plen;
+}
+
+uint8_t dwphy_get_plen(void)
+{
+	return config.txPreambLength;
+}
+
+uint8_t dwphy_get_prf(void)
+{
+	return DWPHY_PRF;
 }

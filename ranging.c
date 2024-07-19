@@ -532,9 +532,12 @@ void twr_handle_message(const struct rxbuf* rx)
  * API
  */
 
-void twr_init(uint8_t rate_dw, uint8_t plen_dw, uint8_t prf_dw,
-			  uint32_t processing_delay_us)
+void twr_init(uint32_t processing_delay_us)
 {
+	uint8_t rate_dw = dwphy_get_rate();
+	uint8_t plen_dw = dwphy_get_plen();
+	uint8_t prf_dw = dwphy_get_prf();
+
 	/* Calculate reply delay: To make the ToF calculation error as small as
 	 * possible in the presence of clock drift, the reply delays on both
 	 * sides should be

@@ -53,4 +53,10 @@ float dwphy_get_rx_clock_offset_ci(int32_t ci);
 int dwphy_get_recommended_preambletimeout(void);
 void dwphy_xtal_trim(void);
 
+void dwphy_set_rate(uint8_t br);
+uint8_t dwphy_get_rate(void);
+void dwphy_set_plen(uint8_t plen);
+uint8_t dwphy_get_plen(void);
+uint8_t dwphy_get_prf(void);
+
 #endif
