@@ -23,8 +23,6 @@
 
 #include "log.h"
 
-#define DWMAC_DEFAULT_TX_TIMEO 20
-
 static const char* LOG_TAG = "DECA";
 
 static uint16_t panId;
@@ -253,17 +251,16 @@ void dwmac_txbuf_return(struct txbuf* tx)
 void dwmac_tx_prepare_null(struct txbuf* tx)
 {
 	tx->len = 0;
-	tx->ranging = false;
 	tx->resp = false;
 	tx->resp_multi = false;
-	tx->timeout = 0;
+	tx->ranging = false;
+	tx->sleep_after_tx = false;
+	tx->rx_timeout = 0;
 	tx->txtime = 0;
 	tx->rx_delay = 0;
 	tx->pto = 0;
-	tx->tx_timeout = DWMAC_DEFAULT_TX_TIMEO;
 	tx->to_cb = NULL;
 	tx->complete_cb = NULL;
-	tx->sleep_after_tx = false;
 }
 
 /* len is without FCS */
@@ -292,19 +289,11 @@ void dwmac_tx_expect_multiple_responses(struct txbuf* tx)
 	tx->resp_multi = true;
 }
 
-/** timeout for waiting of TX result in ms */
-void dwmac_tx_set_tx_timeout(struct txbuf* tx, uint16_t timeout)
-{
-	tx->tx_timeout = timeout;
-}
-
 /** timeout in UUS, implies response expected */
-void dwmac_tx_set_frame_timeout(struct txbuf* tx, uint16_t to)
+void dwmac_tx_set_rx_timeout(struct txbuf* tx, uint16_t to)
 {
 	tx->resp = true;
-	tx->timeout = to;
-	int us = UUS_TO_US(to);
-	tx->tx_timeout = CEIL_DIV(us, 1000) + DWMAC_DEFAULT_TX_TIMEO;
+	tx->rx_timeout = to;
 }
 
 /* timeout in units of PAC size, implies response expected */
@@ -312,8 +301,6 @@ void dwmac_tx_set_preamble_timeout(struct txbuf* tx, uint16_t pto)
 {
 	tx->resp = true;
 	tx->pto = pto;
-	int us = dwphy_pac_to_usec(pto);
-	tx->tx_timeout = CEIL_DIV(us, 1000) + DWMAC_DEFAULT_TX_TIMEO;
 }
 
 void dwmac_tx_set_sleep_after_tx(struct txbuf* tx)
@@ -335,21 +322,6 @@ void dwmac_tx_set_complete_handler(struct txbuf* tx, deca_tx_complete_cb h)
 void dwmac_tx_set_txtime(struct txbuf* tx, uint64_t time)
 {
 	tx->txtime = time;
-	// TODO: tx_timeout
-}
-
-/** returns txbuf when done */
-bool dwmac_tx_queue(struct txbuf* tx)
-{
-	if (tx == NULL) {
-		LOG_ERR("TX invalid");
-		return false;
-	}
-
-	/* pass to platform dependent queue */
-	// return dwmac_plat_tx_queue(tx);
-	current_tx = tx;
-	return dwmac_tx_raw(tx);
 }
 
 bool dwmac_tx_raw(struct txbuf* tx)
@@ -377,7 +349,7 @@ bool dwmac_tx_raw(struct txbuf* tx)
 		dwt_writetxfctrl(tx->len, 0, tx->ranging);
 	}
 
-	dwt_setrxtimeout(tx->timeout);
+	dwt_setrxtimeout(tx->rx_timeout);
 	dwt_setrxaftertxdelay(tx->rx_delay);
 	dwt_setpreambledetecttimeout(tx->pto);
 
@@ -428,6 +400,17 @@ bool dwmac_tx_raw(struct txbuf* tx)
 	}
 
 	return true;
+}
+
+bool dwmac_transmit(struct txbuf* tx)
+{
+	if (tx == NULL) {
+		LOG_ERR("TX invalid");
+		return false;
+	}
+
+	current_tx = tx;
+	return dwmac_tx_raw(tx);
 }
 
 extern uint64_t dw_irq_time;
@@ -488,7 +471,7 @@ void dwmac_handle_tx_done(void)
 
 	// only remove TX if we are not waiting for a RX timeout
 	if (current_tx != NULL && current_tx->pto == 0
-		&& current_tx->timeout == 0) {
+		&& current_tx->rx_timeout == 0) {
 		current_tx = NULL;
 	}
 

@@ -71,7 +71,7 @@ bool blink_send_short(uint16_t src)
 	msg->time_ms = 0; // TODO plat_get_time();
 	msg->battery = 0; // TODO plat_get_battery();
 
-	bool res = dwmac_tx_queue(tx);
+	bool res = dwmac_transmit(tx);
 	LOG_TX_RES(res, "BLINK #%lu " ADDR_FMT, msg->seq_no, src);
 	return res;
 }
@@ -120,7 +120,7 @@ bool blink_send_long(uint64_t src, bool sleep_after_tx)
 	msg->time_ms = 0; // TODO plat_get_time();
 	msg->battery = 0; // TODO plat_get_battery();
 
-	bool res = dwmac_tx_queue(tx);
+	bool res = dwmac_transmit(tx);
 	LOG_TX_RES(res, "BLINK #%lu " LADDR_FMT, msg->seq_no, LADDR_PAR(src));
 	return res;
 }

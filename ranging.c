@@ -101,7 +101,7 @@ static bool twr_send_poll(uint64_t ancor)
 	dwmac_tx_set_preamble_timeout(tx, twr_pto);
 	dwmac_tx_set_timeout_handler(tx, twr_handle_timeout);
 
-	bool res = dwmac_tx_queue(tx);
+	bool res = dwmac_transmit(tx);
 	if (res) {
 		DBG_UWB("Sent Poll to " LADDR_FMT, LADDR_PAR(ancor));
 		expected_msg = single_sided ? TWR_MSG_SSRESP : TWR_MSG_RESP;
@@ -130,7 +130,7 @@ static bool twr_send_response(uint64_t tag, uint64_t poll_rx_ts)
 	dwmac_tx_set_preamble_timeout(tx, twr_pto);
 	dwmac_tx_set_txtime(tx, resp_tx_time);
 
-	bool res = dwmac_tx_queue(tx);
+	bool res = dwmac_transmit(tx);
 	if (res) {
 		DBG_UWB("Sent Response to " LADDR_FMT " after %dus", LADDR_PAR(tag),
 				(int)DTU_TO_US(resp_tx_time - poll_rx_ts));
@@ -166,7 +166,7 @@ static bool twr_send_ss_response(uint64_t tag, uint64_t poll_rx_ts)
 	dwmac_tx_set_ranging(tx);
 	dwmac_tx_set_txtime(tx, resp_tx_time);
 
-	bool res = dwmac_tx_queue(tx);
+	bool res = dwmac_transmit(tx);
 	if (res) {
 		DBG_UWB("Sent SS Response to " LADDR_FMT " after %dus", LADDR_PAR(tag),
 				(int)DTU_TO_US(resp_tx_time - poll_rx_ts));
@@ -214,7 +214,7 @@ static bool twr_send_final(uint64_t ancor, uint64_t resp_rx_ts)
 	dwmac_tx_set_timeout_handler(tx, twr_handle_timeout);
 #endif
 
-	bool res = dwmac_tx_queue(tx);
+	bool res = dwmac_transmit(tx);
 	if (res) {
 		DBG_UWB("Sent Final to " LADDR_FMT " after %dus", LADDR_PAR(ancor),
 				(int)DTU_TO_US(final_tx_time - resp_rx_ts));
@@ -258,7 +258,7 @@ static bool twr_send_report(uint64_t tag, uint16_t dist, uint16_t cnum,
 	uint64_t rep_tx_time = (final_rx_ts + twr_delay_dtu) & DTU_DELAYEDTRX_MASK;
 	dwmac_tx_set_txtime(tx, rep_tx_time);
 
-	bool res = dwmac_tx_queue(tx);
+	bool res = dwmac_transmit(tx);
 	LOG_TX_RES(res, "Report to " LADDR_FMT ": distance %u cm", LADDR_PAR(tag),
 			   dist);
 

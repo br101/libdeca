@@ -43,7 +43,7 @@ bool sync_send_short(void)
 	send_dtu &= DTU_MASK;
 	dwmac_tx_set_txtime(tx, send_dtu);
 
-	bool res = dwmac_tx_queue(tx);
+	bool res = dwmac_transmit(tx);
 	LOG_TX_RES(res, "Sync #%lu", msg->seq_no);
 	return res;
 }
@@ -67,7 +67,7 @@ bool sync_send_long(uint64_t src)
 	send_dtu &= DTU_MASK;
 	dwmac_tx_set_txtime(tx, send_dtu);
 
-	bool res = dwmac_tx_queue(tx);
+	bool res = dwmac_transmit(tx);
 	LOG_TX_RES(res, "Sync long #%lu", msg->seq_no);
 	return res;
 }

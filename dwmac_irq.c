@@ -138,7 +138,7 @@ void dwmac_irq_err_cb(const dwt_cb_data_t* dat)
 	/* in case we are waiting for a timeout, also queue a RX_TIMEOUT event (!)
 	 * so the timeout handlers are called. */
 	if (current_tx != NULL
-		&& (current_tx->timeout != 0 || current_tx->pto != 0)) {
+		&& (current_tx->rx_timeout != 0 || current_tx->pto != 0)) {
 		dwtask_queue_event(DWEVT_RX_TIMEOUT, &dat->status);
 	}
 }

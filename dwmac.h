@@ -103,16 +103,14 @@ typedef void (*deca_tx_complete_cb)(void);
 struct txbuf {
 	uint8_t buf[DWMAC_RXBUF_LEN];
 	size_t len;
-	bool resp;
-	bool resp_multi; // multiple replies expected
-	bool ranging;
-	bool sleep_after_tx;
-	uint16_t timeout;
-	int retries;
+	bool resp;			 // response expected
+	bool resp_multi;	 // multiple responses expected
+	bool ranging;		 // ranging
+	bool sleep_after_tx; // goto sleep after TX
+	uint16_t rx_timeout; // RX timeout
 	uint64_t txtime;	 // DTU
 	uint32_t rx_delay;	 // RX after TX delay in UUS
 	uint16_t pto;		 // preamble detect timeout in PAC (+1)
-	uint16_t tx_timeout; // maximum wait in ms
 	deca_to_cb to_cb;
 	deca_tx_complete_cb complete_cb;
 };
@@ -128,18 +126,16 @@ void dwmac_txbuf_return(struct txbuf* tx);
 void dwmac_tx_prepare_null(struct txbuf* tx);
 void dwmac_tx_prepare(struct txbuf* tx, size_t len);
 void dwmac_tx_set_ranging(struct txbuf* tx);
+void dwmac_tx_set_txtime(struct txbuf* tx, uint64_t time);
 void dwmac_tx_expect_response(struct txbuf* tx, uint32_t delay);
 void dwmac_tx_expect_multiple_responses(struct txbuf* tx);
-void dwmac_tx_set_tx_timeout(struct txbuf* tx, uint16_t timeout);
-void dwmac_tx_set_frame_timeout(struct txbuf* tx, uint16_t to);
+void dwmac_tx_set_rx_timeout(struct txbuf* tx, uint16_t to);
 void dwmac_tx_set_preamble_timeout(struct txbuf* tx, uint16_t pto);
 void dwmac_tx_set_sleep_after_tx(struct txbuf* tx);
 void dwmac_tx_set_timeout_handler(struct txbuf* tx, deca_to_cb toh);
 void dwmac_tx_set_complete_handler(struct txbuf* tx, void (*h)(void));
-void dwmac_tx_set_txtime(struct txbuf* tx, uint64_t time);
 
-bool dwmac_tx_queue(struct txbuf* tx);
-bool dwmac_tx_raw(struct txbuf* tx);
+bool dwmac_transmit(struct txbuf* tx);
 
 /* called from task / scheduler context */
 void dwmac_handle_rx_frame(const struct rxbuf* rx);
