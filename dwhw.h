@@ -19,5 +19,6 @@ bool dwhw_is_ready(void);
 void dwhw_sleep_after_tx(void);
 void dwhw_configure_sleep(void);
 void dwhw_enable_tx_interrupt(bool on);
+void dwhw_calib_if_temp_change(void);
 
 #endif

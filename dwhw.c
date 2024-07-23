@@ -27,6 +27,13 @@ extern const struct dwt_probe_s dw3000_probe_interf;
 
 static const char* LOG_TAG = "DECA";
 static bool dwchip_ready = false;
+static float last_calib_temp;
+
+static void dwhw_update_calib_temp(void)
+{
+	uint16_t tv = dwt_readtempvbat();
+	last_calib_temp = dwt_convertrawtemperature(tv >> 8);
+}
 
 bool dwhw_init(void)
 {
@@ -72,6 +79,10 @@ bool dwhw_init(void)
 	}
 
 	dw3000_spi_speed_fast();
+
+	// assume dwphy_init() is run soon!
+	dwhw_update_calib_temp();
+
 	dwchip_ready = true;
 	return true;
 }
@@ -80,7 +91,7 @@ void dwhw_configure_sleep(void)
 {
 	/* Sleep configuration:
 	 * - run RX calibration (PGFCAL)
-	 * = restore config
+	 * - restore config
 	 * - wakeup on CS pin
 	 * - wakeup on WAKEUP
 	 * - enable deep sleep */
@@ -156,6 +167,7 @@ bool dwhw_wakeup(void)
 			dwt_read32bitreg(SYS_ENABLE_LO_ID));
 #endif
 
+	dwhw_update_calib_temp(); // DWT_PGFCAL was set
 	dwchip_ready = true;
 	return true;
 }
@@ -169,4 +181,16 @@ void dwhw_sleep_after_tx(void)
 {
 	dwchip_ready = false;
 	dw3000_spi_fini();
+}
+
+void dwhw_calib_if_temp_change(void)
+{
+	uint16_t tv = dwt_readtempvbat();
+	float temp = dwt_convertrawtemperature(tv >> 8);
+	LOG_INF("TEMP %.2f last %.2f", temp, last_calib_temp);
+	if (temp >= last_calib_temp + 20.0 || temp <= last_calib_temp - 20.0) {
+		LOG_WARN("Temperature changed by 20deg, calibrating");
+		last_calib_temp = temp;
+		dwt_pgf_cal(1);
+	}
 }
