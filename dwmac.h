@@ -141,7 +141,7 @@ void dwmac_cleanup_sleep_after_tx(void);
 void dwmac_rx_reenable(void);
 void dwmac_set_rx_reenable(bool b);
 
-void deca_print_irq_status(uint32_t status);
+void deca_print_sys_status(uint32_t status);
 void dwmac_print_event_counters(void);
 
 uint16_t dwmac_get_mac16(void);

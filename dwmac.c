@@ -12,6 +12,9 @@
 
 #include <deca_device_api.h>
 #include <deca_version.h>
+#ifdef DW3000_DRIVER_VERSION // == 0x040000
+#include <deca_regs.h>
+#endif
 
 #include "dwhw.h"
 #include "dwmac.h"
@@ -115,127 +118,191 @@ void dwmac_set_frame_filter(void)
 								 | DWT_FF_COORD_EN);
 }
 
-void deca_print_irq_status(uint32_t status)
+void deca_print_sys_status(uint32_t status)
 {
 #ifdef DRIVER_VERSION_HEX // >= 0x060007
 	if (status & DWT_INT_TIMER1_BIT_MASK) {
-		LOG_INF("TIMER1 expiry");
+		LOG_INF("- TIMER1 expiry");
 	}
 	if (status & DWT_INT_TIMER0_BIT_MASK) {
-		LOG_INF("TIMER0 expiry");
+		LOG_INF("- TIMER0 expiry");
 	}
 	if (status & DWT_INT_ARFE_BIT_MASK) {
-		LOG_INF("Frame filtering error");
+		LOG_INF("- Frame filtered");
 	}
 	if (status & DWT_INT_CPERR_BIT_MASK) {
-		LOG_INF("STS quality warning/error");
+		LOG_INF("- STS quality warning/error");
 	}
 	if (status & DWT_INT_HPDWARN_BIT_MASK) {
-		LOG_INF("Half period warning flag when delayed TX/RX is used");
+		LOG_INF("- Half period warning");
 	}
 	if (status & DWT_INT_RXSTO_BIT_MASK) {
-		LOG_INF("SFD timeout");
+		LOG_INF("- SFD timeout");
 	}
 	if (status & DWT_INT_PLL_HILO_BIT_MASK) {
-		LOG_INF("PLL calibration flag");
+		LOG_INF("- Clock PLL Losing Lock");
 	}
 	if (status & DWT_INT_RCINIT_BIT_MASK) {
-		LOG_INF("Device has entered IDLE_RC");
+		LOG_INF("- Device has entered IDLE_RC");
 	}
 	if (status & DWT_INT_SPIRDY_BIT_MASK) {
-		LOG_INF("SPI ready flag");
+		LOG_INF("- SPI ready");
 	}
 	if (status & DWT_INT_RXPTO_BIT_MASK) {
-		LOG_INF("Preamble timeout");
+		LOG_INF("- RX Preamble timeout");
 	}
 	if (status & DWT_INT_RXOVRR_BIT_MASK) {
-		LOG_INF("RX overrun event when double RX buffer is used");
+		LOG_INF("- RX overrun (double RX buffer)");
 	}
 	if (status & DWT_INT_VWARN_BIT_MASK) {
-		LOG_INF("Brownout event detected");
+		LOG_INF("- Low voltage warning");
 	}
 	if (status & DWT_INT_CIAERR_BIT_MASK) {
-		LOG_INF("CIA error");
+		LOG_INF("- CIA error");
 	}
 	if (status & DWT_INT_RXFTO_BIT_MASK) {
-		LOG_INF("RX frame wait timeout");
+		LOG_INF("- RX frame wait timeout");
 	}
 	if (status & DWT_INT_RXFSL_BIT_MASK) {
-		LOG_INF("Reed-Solomon error (RX sync loss)");
+		LOG_INF("- RX Reed-Solomon sync loss");
 	}
 	if (status & DWT_INT_RXFCE_BIT_MASK) {
-		LOG_INF("RX frame CRC error");
+		LOG_INF("- RX frame CRC error");
 	}
 	if (status & DWT_INT_RXFCG_BIT_MASK) {
-		LOG_INF("RX frame CRC good");
+		LOG_INF("- RX frame CRC good");
 	}
 	if (status & DWT_INT_RXFR_BIT_MASK) {
-		LOG_INF("RX ended - frame ready");
+		LOG_INF("- RX data frame ready");
 	}
 	if (status & DWT_INT_RXPHE_BIT_MASK) {
-		LOG_INF("PHY header error");
+		LOG_INF("- RX PHY header error");
 	}
 	if (status & DWT_INT_RXPHD_BIT_MASK) {
-		LOG_INF("PHY header detected");
+		LOG_INF("- RX PHY header detected");
 	}
 	if (status & DWT_INT_CIADONE_BIT_MASK) {
-		LOG_INF("CIA done");
+		LOG_INF("- CIA done");
 	}
 	if (status & DWT_INT_RXSFDD_BIT_MASK) {
-		LOG_INF("SFD detected");
+		LOG_INF("- RX SFD detected");
 	}
 	if (status & DWT_INT_RXPRD_BIT_MASK) {
-		LOG_INF("Preamble detected");
+		LOG_INF("- RX Preamble detected");
 	}
 	if (status & DWT_INT_TXFRS_BIT_MASK) {
-		LOG_INF("Frame sent");
+		LOG_INF("- TX Frame sent");
 	}
 	if (status & DWT_INT_TXPHS_BIT_MASK) {
-		LOG_INF("Frame PHR sent");
+		LOG_INF("- TX PHR sent");
 	}
 	if (status & DWT_INT_TXPRS_BIT_MASK) {
-		LOG_INF("Frame preamble sent");
+		LOG_INF("- TX preamble sent");
 	}
 	if (status & DWT_INT_TXFRB_BIT_MASK) {
-		LOG_INF("Frame transmission begins");
+		LOG_INF("- TX frame begins");
 	}
 	if (status & DWT_INT_AAT_BIT_MASK) {
-		LOG_INF("Automatic ACK transmission pending");
+		LOG_INF("- Automatic ACK transmission pending");
 	}
 	if (status & DWT_INT_SPICRCE_BIT_MASK) {
-		LOG_INF("SPI CRC error");
+		LOG_INF("- SPI CRC error");
 	}
 	if (status & DWT_INT_CP_LOCK_BIT_MASK) {
-		LOG_INF("PLL locked");
+		LOG_INF("- Clock PLL locked");
 	}
 	// if (status & DWT_INT_IRQS_BIT_MASK) {
-	//	LOG_INF("Interrupt set");
+	//	LOG_INF("- Interrupt set");
 	// }
 #else
-	if (status & DWT_INT_RFTO) {
-		LOG_INF("RX Timeout frame wait");
+
+	if (status & SYS_STATUS_ARFE_BIT_MASK) {
+		LOG_INF("- RX frame filtered");
 	}
-	if (status & DWT_INT_RXPTO) {
-		LOG_INF("RX Timeout preamble detect");
+	if (status & SYS_STATUS_CPERR_BIT_MASK) {
+		LOG_INF("- STS quality warning/error");
 	}
-	if (status & DWT_INT_ARFE) {
-		LOG_INF("RX Filtered");
+	if (status & SYS_STATUS_HPDWARN_BIT_MASK) {
+		LOG_INF("- Half period warning flag when delayed TX/RX is used");
 	}
-	if (status & DWT_INT_RPHE) {
-		LOG_INF("RX Error PHY");
+	if (status & SYS_STATUS_RXSTO_BIT_MASK) {
+		LOG_INF("- SFD timeout");
 	}
-	if (status & DWT_INT_RFCE) {
-		LOG_INF("RX Error CRC");
+	if (status & SYS_STATUS_PLL_HILO_BIT_MASK) {
+		LOG_INF("- Clock PLL Losing Lock");
 	}
-	if (status & DWT_INT_RFSL) {
-		LOG_INF("RX Error SYNC Loss");
+	if (status & SYS_STATUS_RCINIT_BIT_MASK) {
+		LOG_INF("- Device has entered IDLE_RC");
 	}
-	if (status & DWT_INT_RXOVRR) {
-		LOG_INF("RX Error Receiver overrun");
+	if (status & SYS_STATUS_SPIRDY_BIT_MASK) {
+		LOG_INF("- SPI ready");
 	}
-	if (status & DWT_INT_SFDT) {
-		LOG_INF("RX Error SFD timeout");
+	if (status & SYS_STATUS_RXPTO_BIT_MASK) {
+		LOG_INF("- RX Preamble timeout");
 	}
+	if (status & SYS_STATUS_RXOVRR_BIT_MASK) {
+		LOG_INF("- RX overrun (double RX buffer)");
+	}
+	if (status & SYS_STATUS_VWARN_BIT_MASK) {
+		LOG_INF("- Low voltage warning");
+	}
+	if (status & SYS_STATUS_CIAERR_BIT_MASK) {
+		LOG_INF("- CIA error");
+	}
+	if (status & SYS_STATUS_RXFTO_BIT_MASK) {
+		LOG_INF("- RX frame wait timeout");
+	}
+	if (status & SYS_STATUS_RXFSL_BIT_MASK) {
+		LOG_INF("- RX Reed-Solomon sync loss");
+	}
+	if (status & SYS_STATUS_RXFCE_BIT_MASK) {
+		LOG_INF("- RX frame CRC error");
+	}
+	if (status & SYS_STATUS_RXFCG_BIT_MASK) {
+		LOG_INF("- RX frame CRC good");
+	}
+	if (status & SYS_STATUS_RXFR_BIT_MASK) {
+		LOG_INF("- RX data frame ready");
+	}
+	if (status & SYS_STATUS_RXPHE_BIT_MASK) {
+		LOG_INF("- RX PHY header error");
+	}
+	if (status & SYS_STATUS_RXPHD_BIT_MASK) {
+		LOG_INF("- RX PHY header detected");
+	}
+	if (status & SYS_STATUS_CIADONE_BIT_MASK) {
+		LOG_INF("- CIA done");
+	}
+	if (status & SYS_STATUS_RXSFDD_BIT_MASK) {
+		LOG_INF("- RX SFD detected");
+	}
+	if (status & SYS_STATUS_RXPRD_BIT_MASK) {
+		LOG_INF("- RX Preamble detected");
+	}
+	if (status & SYS_STATUS_TXFRS_BIT_MASK) {
+		LOG_INF("- TX Frame sent");
+	}
+	if (status & SYS_STATUS_TXPHS_BIT_MASK) {
+		LOG_INF("- TX PHR sent");
+	}
+	if (status & SYS_STATUS_TXPRS_BIT_MASK) {
+		LOG_INF("- TX preamble sent");
+	}
+	if (status & SYS_STATUS_TXFRB_BIT_MASK) {
+		LOG_INF("- TX frame begins");
+	}
+	if (status & SYS_STATUS_AAT_BIT_MASK) {
+		LOG_INF("- Automatic ACK transmission pending");
+	}
+	if (status & SYS_STATUS_SPICRCE_BIT_MASK) {
+		LOG_INF("- SPI CRC error");
+	}
+	if (status & SYS_STATUS_CP_LOCK_BIT_MASK) {
+		LOG_INF("- Clock PLL locked");
+	}
+	// if (status & SYS_STATUS_IRQS_BIT_MASK) {
+	//	LOG_INF("- Interrupt set");
+	// }
 #endif
 }
 
@@ -447,7 +514,7 @@ void dwmac_handle_rx_frame(const struct rxbuf* rx)
 void dwmac_handle_rx_timeout(uint32_t status)
 {
 #if CONFIG_DECA_DEBUG_RX_STATUS
-	deca_print_irq_status(status);
+	deca_print_sys_status(status);
 #endif
 
 	if (current_tx && current_tx->to_cb != NULL) {
@@ -490,7 +557,7 @@ void dwmac_cleanup_sleep_after_tx(void)
 void dwmac_handle_error(uint32_t status)
 {
 #if CONFIG_DECA_DEBUG_RX_STATUS | CONFIG_DECA_DEBUG_FRAME_FILTER
-	deca_print_irq_status(status);
+	deca_print_sys_status(status);
 #endif
 
 	if (dwmac_err_cb != NULL) {
