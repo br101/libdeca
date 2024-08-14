@@ -35,6 +35,8 @@ bool twr_start_ss(uint64_t dst);
 bool twr_in_progress(void);
 void twr_cancel(void);
 void twr_set_observer(twr_cb_t cb);
+uint16_t twr_get_cnum(void);
+uint64_t twr_get_source_mac(void);
 
 void twr_handle_message(const struct rxbuf* rx);
 double twr_distance_calculation_dtu(uint32_t poll_rx_ts, uint32_t resp_tx_ts,

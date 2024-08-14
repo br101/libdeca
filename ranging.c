@@ -228,7 +228,7 @@ static bool twr_send_final(uint64_t ancor, uint64_t resp_rx_ts)
 		twr_retry();
 	}
 
-	if (twr_send_report) {
+	if (!twr_send_report) {
 		/* if reports are not sent by the other side, we assume everything is OK
 		 * if the final message was sent. We don't know the distance, so we
 		 * just record "OK" */
@@ -657,4 +657,18 @@ void twr_set_observer(twr_cb_t cb)
 bool twr_in_progress(void)
 {
 	return in_progress;
+}
+
+uint16_t twr_get_cnum(void)
+{
+	return twr_cnum;
+}
+
+uint64_t twr_get_source_mac(void)
+{
+	if (IS_SHORT_ADDR(twr_dst)) {
+		return dwmac_get_mac16();
+	} else {
+		return dwmac_get_mac64();
+	}
 }
