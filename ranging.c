@@ -24,8 +24,7 @@ static const char* LOG_TAG = "TWR";
 
 #define TWR_DEBUG_CALCULATION 0
 #define TWR_MAX_RETRY		  3
-#define TWR_RETRY_DELAY		  20 /* random with this maximum in ms */
-#define TWR_SEND_REPORT		  1
+#define TWR_RETRY_DELAY		  20  /* random with this maximum in ms */
 #define TWR_SPI_US_PER_BYTE	  2.3 /* TODO: measured with 8MHz DMA for 12 byte */
 
 /*
@@ -59,6 +58,7 @@ struct twr_msg_report {
 static uint64_t twr_delay_dtu;
 static uint32_t twr_rx_delay; // UUS
 static uint16_t twr_pto;
+static bool twr_send_report;
 
 /* state */
 static twr_cb_t twr_observer_cb;
@@ -208,11 +208,12 @@ static bool twr_send_final(uint64_t ancor, uint64_t resp_rx_ts)
 
 	dwmac_tx_set_ranging(tx);
 	dwmac_tx_set_txtime(tx, final_tx_time);
-#if TWR_SEND_REPORT
-	dwmac_tx_expect_response(tx, twr_rx_delay);
-	dwmac_tx_set_preamble_timeout(tx, twr_pto);
-	dwmac_tx_set_timeout_handler(tx, twr_handle_timeout);
-#endif
+
+	if (twr_send_report) {
+		dwmac_tx_expect_response(tx, twr_rx_delay);
+		dwmac_tx_set_preamble_timeout(tx, twr_pto);
+		dwmac_tx_set_timeout_handler(tx, twr_handle_timeout);
+	}
 
 	bool res = dwmac_transmit(tx);
 	if (res) {
@@ -221,27 +222,27 @@ static bool twr_send_final(uint64_t ancor, uint64_t resp_rx_ts)
 		// LOG_DBG_TS("\tPoll TX TS:\t", poll_tx_ts);
 		// LOG_DBG_TS("\tResp RX TS:\t", resp_rx_ts);
 		// LOG_DBG_TS("\tFina TX TS:\t", final_tx_time);
-		expected_msg = TWR_SEND_REPORT ? TWR_MSG_REPO : 0;
+		expected_msg = twr_send_report ? TWR_MSG_REPO : 0;
 	} else {
 		LOG_ERR("Failed to send Final");
 		twr_retry();
 	}
 
-#if !TWR_SEND_REPORT
-	/* if reports are not sent by the other side, we assume everything is OK
-	 * if the final message was sent. We don't know the distance, so we
-	 * just record "OK" */
-	twr_handle_result(twr_my_mac(ancor), ancor, TWR_OK_VALUE, twr_cnum, false,
-					  true);
-	in_progress = false;
-#endif
+	if (twr_send_report) {
+		/* if reports are not sent by the other side, we assume everything is OK
+		 * if the final message was sent. We don't know the distance, so we
+		 * just record "OK" */
+		twr_handle_result(twr_my_mac(ancor), ancor, TWR_OK_VALUE, twr_cnum,
+						  false, true);
+		in_progress = false;
+	}
 
 	return res;
 }
 
 /* ANCOR -> TAG */
-static bool twr_send_report(uint64_t tag, uint16_t dist, uint16_t cnum,
-							uint64_t final_rx_ts)
+static bool twr_send_report_msg(uint64_t tag, uint16_t dist, uint16_t cnum,
+								uint64_t final_rx_ts)
 {
 	struct txbuf* tx = dwmac_txbuf_get();
 	if (tx == NULL) {
@@ -422,14 +423,14 @@ static void twr_handle_final(const struct twr_msg_final* msg_final,
 								   msg_final->round, msg_final->delay);
 	dist = twr_fixup_distance(dist);
 
-#if TWR_SEND_REPORT
-	// result will be handled after sending the report (time critical)
-	twr_send_report(src, dist, msg_final->cnum, final_rx_ts);
-#else
-	// add result. we have been the destination of this TWR sequence
-	twr_handle_result(src, twr_my_mac(src), dist, msg_final->cnum, false,
-					  false);
-#endif
+	if (twr_send_report) {
+		// result will be handled after sending the report (time critical)
+		twr_send_report_msg(src, dist, msg_final->cnum, final_rx_ts);
+	} else {
+		// add result. we have been the destination of this TWR sequence
+		twr_handle_result(src, twr_my_mac(src), dist, msg_final->cnum, false,
+						  false);
+	}
 }
 
 /* TAG */
@@ -532,8 +533,10 @@ void twr_handle_message(const struct rxbuf* rx)
  * API
  */
 
-void twr_init(uint32_t processing_delay_us)
+void twr_init(uint32_t processing_delay_us, bool send_report)
 {
+	twr_send_report = send_report;
+
 	uint8_t rate_dw = dwphy_get_rate();
 	uint8_t plen_dw = dwphy_get_plen();
 	uint8_t prf_dw = dwphy_get_prf();

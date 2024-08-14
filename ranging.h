@@ -27,7 +27,7 @@ typedef void (*twr_cb_t)(uint64_t src, uint64_t dst, uint16_t dist,
 						 uint16_t num);
 
 /** Initialize TWR with processing delay */
-void twr_init(uint32_t processing_delay_us);
+void twr_init(uint32_t processing_delay_us, bool send_report);
 /** Start DS-TWR (Double Sided - Two Way Ranging) bsequence to ancor */
 bool twr_start(uint64_t dst);
 /** Start SS-TWR (Single Sided - Two Way Ranging) sequence to ancor */
