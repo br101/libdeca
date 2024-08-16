@@ -597,8 +597,8 @@ void twr_init(uint32_t processing_delay_us, bool send_report)
 	twr_pto += 3;
 #endif
 
-	LOG_INF("delay %ld us RX delay %ld us PTO %d (%d us)", twr_delay_us,
-			proc_time_us, twr_pto, dwphy_pac_to_usec(twr_pto));
+	LOG_INF("delay %ld us RX delay %ld us PTO %d (%d us) rep %d", twr_delay_us,
+			proc_time_us, twr_pto, dwphy_pac_to_usec(twr_pto), send_report);
 
 #if 0
 	// distance formula test
