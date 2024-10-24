@@ -71,7 +71,11 @@ void dwmac_irq_rx_ok_cb(const dwt_cb_data_t* status)
 	} else if (status->rx_flags & DWT_CB_DATA_RX_FLAG_ND) {
 		// TODO: STS can also be used with data frames
 		int16_t stsq;
+#if DRIVER_VERSION_HEX >= 0x080202
+		int sts_ok = dwt_readstsquality(&stsq, 0);
+#else
 		int sts_ok = dwt_readstsquality(&stsq);
+#endif
 		if (!sts_ok) {
 			LOG_ERR_IRQ("STS Qual not good %d", stsq);
 			// TODO: handle error

@@ -35,7 +35,7 @@ void dwphy_set_antenna_delay(uint16_t antdelay);
 /* phy time calculations */
 const char* dwphy_rate_str(uint8_t br);
 int dwphy_rate_int(uint8_t br);
-int dwphy_plen_int(uint8_t pl);
+int dwphy_plen_int(uint16_t pl);
 int dwphy_prf_int(uint8_t p);
 int dwphy_pac_int(uint8_t p);
 uint32_t dwphy_calc_preamble_time(uint8_t plen_dwt, uint8_t prf_dwt,

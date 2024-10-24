@@ -79,7 +79,7 @@ dwt_txconfig_t txconfig_ch9 = {
 	0x0			/* PG count */
 };
 
-static uint8_t phy_get_recommended_pac(uint8_t plen)
+static uint8_t phy_get_recommended_pac(uint16_t plen)
 {
 	/* TODO: check following comment from forum "with a preamble length 256
 	 * a PAC size of 8 worked better than PAC size of 16" */
@@ -226,7 +226,7 @@ int dwphy_rate_int(uint8_t br)
 	return -1;
 }
 
-int dwphy_plen_int(uint8_t pl)
+int dwphy_plen_int(uint16_t pl)
 {
 	switch (pl) {
 	case DWT_PLEN_4096:

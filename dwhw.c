@@ -39,7 +39,9 @@ bool dwhw_init(void)
 {
 	int ret;
 
-#ifdef DRIVER_VERSION_HEX
+#if DRIVER_VERSION_HEX >= 0x080202
+	LOG_INF("Decadriver source: " DRIVER_VERSION_STR);
+#elif defined(DRIVER_VERSION_HEX)
 	LOG_INF("Decadriver lib: " DRIVER_VERSION_STR);
 #else
 	LOG_INF("Decadriver source: " DW3000_DEVICE_DRIVER_VER_STRING);
@@ -51,6 +53,10 @@ bool dwhw_init(void)
 		LOG_ERR("DWT Probe failed");
 		return false;
 	}
+#endif
+
+#if DRIVER_VERSION_HEX >= 0x080202
+	dwt_initialise(0);
 #endif
 
 	uint32_t dev_id = dwt_readdevid();
@@ -140,7 +146,11 @@ bool dwhw_wakeup(void)
 	dw3000_spi_reinit();
 	dw3000_hw_wakeup();
 
+#if DRIVER_VERSION_HEX >= 0x080202
+	dwt_restoreconfig(1);
+#else
 	dwt_restoreconfig();
+#endif
 
 	int ret = dwt_check_dev_id();
 	if (ret != DWT_SUCCESS) {

@@ -76,7 +76,9 @@ bool dwmac_init(uint16_t mypanId, uint16_t myAddr, deca_rx_cb rx_cb,
 	/* for 'dwcnt' command */
 	dwt_configeventcounters(1);
 
-#ifdef DRIVER_VERSION_HEX // >= 0x060007
+#if DRIVER_VERSION_HEX >= 0x080202
+	// TODO
+#elif DRIVER_VERSION_HEX >= 0x060007
 	dwt_setcallbacks(dwmac_irq_tx_done_cb, dwmac_irq_rx_ok_cb,
 					 dwmac_irq_rx_to_cb, dwmac_irq_err_cb, dwmac_irq_spi_err_cb,
 					 dwmac_irq_spi_rdy_cb, NULL);

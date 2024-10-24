@@ -8,6 +8,7 @@
  */
 
 #include <string.h> // memcpy
+#include <deca_version.h>
 
 #include "dwtime.h"
 #include "log.h"
@@ -34,7 +35,11 @@ uint64_t dw_get_tx_timestamp(void)
 uint64_t dw_get_rx_timestamp(void)
 {
 	uint8_t ts_tab[5];
+#if DRIVER_VERSION_HEX >= 0x080202
+	dwt_readrxtimestamp(ts_tab, DWT_COMPAT_NONE);
+#else
 	dwt_readrxtimestamp(ts_tab);
+#endif
 	return dw_timestamp_u64(ts_tab);
 }
 
