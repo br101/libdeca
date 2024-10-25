@@ -78,10 +78,10 @@ bool dwhw_init(void)
 	uint32_t dev_id = dwt_readdevid();
 	ret = dwt_check_dev_id();
 	if (ret != DWT_SUCCESS) {
-		LOG_ERR("UNKNOWN DEV ID: %lX", dev_id);
+		LOG_ERR("UNKNOWN DEV ID: %" PRIX32, dev_id);
 		return false;
 	} else {
-		LOG_INF("DEV ID: %lX", dev_id);
+		LOG_INF("DEV ID: %" PRIX32, dev_id);
 	}
 
 	// dwt_setleds(DWT_LEDS_ENABLE | DWT_LEDS_INIT_BLINK);
@@ -199,8 +199,8 @@ void dwhw_calib_if_temp_change(void)
 {
 	uint16_t tv = dwt_readtempvbat();
 	float temp = dwt_convertrawtemperature(tv >> 8);
-	LOG_INF("TEMP %.2f last %.2f", temp, last_calib_temp);
-	if (temp >= last_calib_temp + 20.0 || temp <= last_calib_temp - 20.0) {
+	LOG_INF("TEMP %.2f last %.2f", (double)temp, (double)last_calib_temp);
+	if (temp >= last_calib_temp + 20.0f || temp <= last_calib_temp - 20.0f) {
 		LOG_WARN("Temperature changed by 20deg, calibrating");
 		last_calib_temp = temp;
 		dwt_pgf_cal(1);

@@ -156,7 +156,8 @@ bool dwphy_config(void)
 			dwphy_plen_int(config.txPreambLength), dwphy_pac_int(config.rxPAC));
 	LOG_INF("config code %d/%d SFD %d", config.txCode, config.rxCode,
 			config.sfdTO);
-	LOG_INF("PRE %ld (SFD %ld) PHD %ld %dB DATA %d = %d us",
+	LOG_INF("PRE %" PRIu32 " (SFD %" PRIu32 ") PHD %" PRIu32
+			" %dB DATA %d = %d us",
 			PKTTIME_TO_USEC(dwphy_calc_preamble_time(config.txPreambLength, prf,
 													 config.dataRate)
 							- dwphy_calc_sfd_time(prf, config.dataRate)),
@@ -397,9 +398,9 @@ float dwphy_get_rx_clock_offset_ci(int32_t ci)
 
 	switch (config.chan) {
 	case 5:
-		return clockOffsetHertz * HERTZ_TO_PPM_MULTIPLIER_CHAN_5;
+		return clockOffsetHertz * (float)HERTZ_TO_PPM_MULTIPLIER_CHAN_5;
 	case 9:
-		return clockOffsetHertz * HERTZ_TO_PPM_MULTIPLIER_CHAN_9;
+		return clockOffsetHertz * (float)HERTZ_TO_PPM_MULTIPLIER_CHAN_9;
 	default:
 		LOG_ERR("Unknown Channel %d", config.chan);
 		break;
@@ -465,7 +466,7 @@ static uint8_t xtalTrim;
 void dwphy_xtal_trim(void)
 {
 	int16_t off_hw = dwt_readclockoffset();
-	int off_pphm = (float)off_hw * CLOCK_OFFSET_PPM_TO_RATIO * 1e6 * 100;
+	int off_pphm = (float)off_hw * (float)CLOCK_OFFSET_PPM_TO_RATIO * 1e6f * 100.0f;
 
 	unsigned int off_abs = abs(off_pphm);
 

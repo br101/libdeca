@@ -7,6 +7,8 @@
  * Version 3. See the file LICENSE.txt for more details.
  */
 
+#include <inttypes.h>
+
 #include "blink.h"
 #include "dwmac.h"
 #include "dwphy.h"
@@ -41,7 +43,7 @@ void blink_handle_msg_short(const struct rxbuf* rx)
 	const struct blink_msg* msg
 		= (struct blink_msg*)(rx->buf + sizeof(struct mac154_hdr_blink_short));
 
-	LOG_DBG("BLINK #%lu " ADDR_FMT " " DWT_FMT " (%x)", msg->seq_no, bh->src,
+	LOG_DBG("BLINK #%" PRIu32 " " ADDR_FMT " " DWT_FMT " (%x)", msg->seq_no, bh->src,
 			DWT_PAR(rx->ts), msg->battery);
 
 	uint64_t rx_ts = dw_timestamp_extend(rx->ts);
@@ -72,7 +74,7 @@ bool blink_send_short(uint16_t src)
 	msg->battery = 0; // TODO plat_get_battery();
 
 	bool res = dwmac_transmit(tx);
-	LOG_TX_RES(res, "BLINK #%lu " ADDR_FMT, msg->seq_no, src);
+	LOG_TX_RES(res, "BLINK #%" PRIu32 " " ADDR_FMT, msg->seq_no, src);
 	return res;
 }
 
@@ -87,7 +89,7 @@ void blink_handle_msg_long(const struct rxbuf* rx)
 	const struct blink_msg* msg
 		= (struct blink_msg*)(rx->buf + sizeof(struct mac154_hdr_blink_long));
 
-	LOG_DBG("BLINK #%lu " LADDR_FMT " " DWT_FMT " (%x)", msg->seq_no,
+	LOG_DBG("BLINK #%" PRIu32 " " LADDR_FMT " " DWT_FMT " (%x)", msg->seq_no,
 			LADDR_PAR(bh->src), DWT_PAR(rx->ts), msg->battery);
 
 	uint64_t rx_ts = dw_timestamp_extend(rx->ts);
@@ -121,7 +123,7 @@ bool blink_send_long(uint64_t src, bool sleep_after_tx)
 	msg->battery = 0; // TODO plat_get_battery();
 
 	bool res = dwmac_transmit(tx);
-	LOG_TX_RES(res, "BLINK #%lu " LADDR_FMT, msg->seq_no, LADDR_PAR(src));
+	LOG_TX_RES(res, "BLINK #%" PRIu32 " " LADDR_FMT, msg->seq_no, LADDR_PAR(src));
 	return res;
 }
 
