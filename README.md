@@ -14,10 +14,18 @@ It provides:
  * Some definitions for IEEE 802.15.4 frame formats
  * Blink and Sync messages
 
-Most of the code is pure platform-independent C code, and can be used in anywhere, but IRQ handling is platform specific and implemented for:
+Most of the code is pure platform-independent C code, and can be used anywhere, but IRQ handling is platform specific and implemented for:
 
+ * Zephyr (version 3.6, NRF Connect SDK v2.7.0)
  * ESP-IDF (version 5.1.1)
  * NRF SDK (version 17.1.0)
+
+## Zephyr
+
+Add this to the main CMakeLists.txt:
+```
+list(APPEND ZEPHYR_EXTRA_MODULES ${CMAKE_CURRENT_SOURCE_DIR}/lib/libdeca/platform)
+```
 
 ## ESP-IDF
 
