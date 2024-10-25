@@ -56,16 +56,14 @@ bool dwhw_init(void)
 #endif
 
 #if DRIVER_VERSION_HEX >= 0x080202
-	dwt_initialise(0);
+	ret = dwt_initialise(DWT_READ_OTP_PID | DWT_READ_OTP_LID | DWT_READ_OTP_BAT
+						 | DWT_READ_OTP_TMP);
+#else
+	ret = dwt_initialise(DWT_DW_INIT)
 #endif
-
-	uint32_t dev_id = dwt_readdevid();
-	ret = dwt_check_dev_id();
-	if (ret != DWT_SUCCESS) {
-		LOG_ERR("UNKNOWN DEV ID: %lX", dev_id);
+	if (ret == DWT_ERROR) {
+		LOG_ERR("INIT failed");
 		return false;
-	} else {
-		LOG_INF("DEV ID: %lX", dev_id);
 	}
 
 	int cnt = 1000;
@@ -77,12 +75,16 @@ bool dwhw_init(void)
 		return false;
 	}
 
-	// dwt_setleds(DWT_LEDS_ENABLE | DWT_LEDS_INIT_BLINK);
-
-	if (dwt_initialise(DWT_DW_INIT) == DWT_ERROR) {
-		LOG_ERR("INIT failed");
+	uint32_t dev_id = dwt_readdevid();
+	ret = dwt_check_dev_id();
+	if (ret != DWT_SUCCESS) {
+		LOG_ERR("UNKNOWN DEV ID: %lX", dev_id);
 		return false;
+	} else {
+		LOG_INF("DEV ID: %lX", dev_id);
 	}
+
+	// dwt_setleds(DWT_LEDS_ENABLE | DWT_LEDS_INIT_BLINK);
 
 	dw3000_spi_speed_fast();
 

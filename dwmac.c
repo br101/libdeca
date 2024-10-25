@@ -54,6 +54,23 @@ extern void dwmac_irq_tx_done_cb(const dwt_cb_data_t* dat);
 extern void dwmac_irq_spi_err_cb(const dwt_cb_data_t* dat);
 extern void dwmac_irq_spi_rdy_cb(const dwt_cb_data_t* dat);
 
+#if DRIVER_VERSION_HEX >= 0x080202
+dwt_callbacks_s dwmac_cbs = {
+	.cbTxDone = dwmac_irq_tx_done_cb,
+	.cbRxOk = dwmac_irq_rx_ok_cb,
+	.cbRxTo = dwmac_irq_rx_to_cb,
+	.cbRxErr = dwmac_irq_err_cb,
+	.cbSPIErr = dwmac_irq_spi_err_cb,
+	.cbSPIRDErr = NULL,
+	.cbSPIRdy = dwmac_irq_spi_rdy_cb,
+	.cbDualSPIEv = NULL,
+	.cbFrmRdy = NULL,
+	.cbCiaDone = NULL,
+	.devErr = NULL,
+	.cbSysEvent = NULL,
+};
+#endif
+
 bool dwmac_init(uint16_t mypanId, uint16_t myAddr, deca_rx_cb rx_cb,
 				deca_to_cb to_cb, deca_err_cb err_cb)
 {
@@ -77,8 +94,21 @@ bool dwmac_init(uint16_t mypanId, uint16_t myAddr, deca_rx_cb rx_cb,
 	dwt_configeventcounters(1);
 
 #if DRIVER_VERSION_HEX >= 0x080202
-	// TODO
+
+	dwt_setcallbacks(&dwmac_cbs);
+	dwt_setinterrupt(DWT_INT_RXFCG_BIT_MASK | DWT_INT_TXFRS_BIT_MASK
+						 | DWT_INT_RXPHE_BIT_MASK | DWT_INT_RXFCE_BIT_MASK
+						 | DWT_INT_RXFSL_BIT_MASK | DWT_INT_RXFTO_BIT_MASK
+						 | DWT_INT_CIAERR_BIT_MASK | DWT_INT_RXPTO_BIT_MASK
+						 | DWT_INT_RXSTO_BIT_MASK
+#if CONFIG_DECA_DEBUG_FRAME_FILTER
+						 | DWT_INT_ARFE_BIT_MASK
+#endif
+					 ,
+					 0, DWT_ENABLE_INT_ONLY);
+
 #elif DRIVER_VERSION_HEX >= 0x060007
+
 	dwt_setcallbacks(dwmac_irq_tx_done_cb, dwmac_irq_rx_ok_cb,
 					 dwmac_irq_rx_to_cb, dwmac_irq_err_cb, dwmac_irq_spi_err_cb,
 					 dwmac_irq_spi_rdy_cb, NULL);
@@ -93,7 +123,9 @@ bool dwmac_init(uint16_t mypanId, uint16_t myAddr, deca_rx_cb rx_cb,
 #endif
 					 ,
 					 0, DWT_ENABLE_INT_ONLY);
+
 #else
+
 	dwt_setcallbacks(dwmac_irq_tx_done_cb, dwmac_irq_rx_ok_cb,
 					 dwmac_irq_rx_to_cb, dwmac_irq_err_cb, dwmac_irq_spi_err_cb,
 					 dwmac_irq_spi_rdy_cb);
