@@ -94,7 +94,7 @@ void sync_handle_msg(const struct rxbuf* rx)
 #if CONFIG_DECA_USE_CARRIERINTEG
 	float skew = dwphy_get_rx_clock_offset_ci(rx->ci) * -1.0;
 #else
-	float skew = (float)dwt_readclockoffset() / (uint32_t)(1 << 26) * 1.0e6;
+	float skew = (float)dwt_readclockoffset() / (uint32_t)(1 << 26) * 1.0e6f;
 #endif
 
 #if DEBUG && NO_FLOAT_PRINTF
@@ -104,7 +104,7 @@ void sync_handle_msg(const struct rxbuf* rx)
 #else
 	LOG_DBG("SYNC LONG #%" PRIu32 " " LADDR_FMT " " DWT_FMT " " DWT_FMT " %f",
 			msg->seq_no, LADDR_PAR(src), DWT_PAR(msg->tx_ts), DWT_PAR(rx->ts),
-			skew);
+			(double)skew);
 #endif
 
 	uint64_t rx_ts = dw_timestamp_extend(rx->ts);

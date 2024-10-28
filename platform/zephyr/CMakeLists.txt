@@ -13,6 +13,9 @@ zephyr_library_sources(
     ../../dwproto.c
     ../../dwtime.c
     ../../dwutil.c
+    ../../mac802154.c
+    ../../ranging.c
+    ../../sync.c
 )
 
 zephyr_include_directories(../..)

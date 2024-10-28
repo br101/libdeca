@@ -9,6 +9,9 @@
 
 #include <math.h>
 #include <stdlib.h>
+#ifdef __ZEPHYR__
+#include <zephyr/random/random.h>
+#endif
 
 #include "dwhw.h"
 #include "dwmac.h"
@@ -349,7 +352,11 @@ static void twr_callback(uint64_t src, uint64_t dst, uint16_t dist,
 static void twr_retry(void)
 {
 	if (++retry < TWR_MAX_RETRY) {
+#ifdef __ZEPHYR__
+		int d = sys_rand32_get() % TWR_RETRY_DELAY;
+#else
 		int d = rand() % TWR_RETRY_DELAY;
+#endif
 		deca_sleep(d);
 		LOG_INF("retry %d to " LADDR_FMT " after %d ms", retry,
 				LADDR_PAR(twr_dst), d);
