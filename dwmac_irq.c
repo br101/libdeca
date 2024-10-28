@@ -22,7 +22,9 @@ extern struct rxbuf rx_buffer;
 extern struct txbuf* current_tx;
 extern bool rx_reenable;
 
+#ifndef __ZEPHYR__
 static const char* LOG_TAG = "DECA";
+#endif
 static uint32_t tx_done_cnt = 0;
 
 /*** all these functions are called from dwt_isr() in interrupt context ***/

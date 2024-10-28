@@ -15,4 +15,5 @@ zephyr_library_sources(
 )
 
 zephyr_include_directories(../..)
-zephyr_include_directories(.)
+
+target_include_directories(${ZEPHYR_CURRENT_LIBRARY} PRIVATE .)

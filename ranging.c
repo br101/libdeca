@@ -20,8 +20,6 @@
 #include "mac802154.h"
 #include "ranging.h"
 
-static const char* LOG_TAG = "TWR";
-
 #define TWR_DEBUG_CALCULATION 0
 #define TWR_MAX_RETRY		  3
 #define TWR_RETRY_DELAY		  20  /* random with this maximum in ms */
@@ -53,6 +51,10 @@ struct twr_msg_report {
 	uint16_t cnum; // sequence number / TWR ID
 	uint16_t dist;
 } __attribute__((packed));
+
+#ifndef __ZEPHYR__
+static const char* LOG_TAG = "TWR";
+#endif
 
 /* calculated in init */
 static uint64_t twr_delay_dtu;
@@ -302,13 +304,13 @@ double twr_distance_calculation_dtu(uint32_t poll_rx_ts, uint32_t resp_tx_ts,
 	double tof_dtu = (double)(Ra * Rb - Da * Db) / (Ra + Rb + Da + Db);
 
 	if (TWR_DEBUG_CALCULATION) {
-		LOG_DBG("Poll RX TS:\t%lu", poll_rx_ts);
-		LOG_DBG("Resp TX TS:\t%lu", resp_tx_ts);
-		LOG_DBG("Fina RX TS:\t%lu", final_rx_ts);
-		LOG_DBG("round1 (Ra)*:\t%lu", Ra);
-		LOG_DBG("round2 (Rb):\t%lu", (uint32_t)Rb);
-		LOG_DBG("reply1 (Da)*:\t%lu", Da);
-		LOG_DBG("reply2 (Db):\t%lu", (uint32_t)Db);
+		LOG_DBG("Poll RX TS:\t%" PRIu32, poll_rx_ts);
+		LOG_DBG("Resp TX TS:\t%" PRIu32, resp_tx_ts);
+		LOG_DBG("Fina RX TS:\t%" PRIu32, final_rx_ts);
+		LOG_DBG("round1 (Ra)*:\t%" PRIu32, Ra);
+		LOG_DBG("round2 (Rb):\t%" PRIu32, (uint32_t)Rb);
+		LOG_DBG("reply1 (Da)*:\t%" PRIu32, Da);
+		LOG_DBG("reply2 (Db):\t%" PRIu32, (uint32_t)Db);
 		LOG_DBG("ToF DTU\t\t%d", (int)tof_dtu);
 	} else if (tof_dtu < 0) {
 		LOG_ERR("ToF DTU %d", (int)tof_dtu);
@@ -597,8 +599,10 @@ void twr_init(uint32_t processing_delay_us, bool send_report)
 	twr_pto += 3;
 #endif
 
-	LOG_INF("delay %ld us RX delay %ld us PTO %d (%d us) rep %d", twr_delay_us,
-			proc_time_us, twr_pto, dwphy_pac_to_usec(twr_pto), send_report);
+	LOG_INF("delay %" PRIu32 " us RX delay %" PRIu32
+			" us PTO %d (%d us) rep %d",
+			twr_delay_us, proc_time_us, twr_pto, dwphy_pac_to_usec(twr_pto),
+			send_report);
 
 #if 0
 	// distance formula test

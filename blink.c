@@ -28,7 +28,9 @@ struct blink_msg {
 	uint8_t battery;
 } __attribute__((packed));
 
+#ifndef __ZEPHYR__
 static const char* LOG_TAG = "BLINK";
+#endif
 static blink_cb_t blink_cb;
 static uint32_t blink_seq;
 

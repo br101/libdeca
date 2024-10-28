@@ -20,7 +20,10 @@ struct toda_sync_msg {
 	uint64_t tx_ts;
 } __attribute__((packed));
 
+#ifndef __ZEPHYR__
 static const char* LOG_TAG = "SYNC";
+#endif
+
 static sync_cb_t sync_cb;
 static uint32_t sync_seq;
 
@@ -44,7 +47,7 @@ bool sync_send_short(void)
 	dwmac_tx_set_txtime(tx, send_dtu);
 
 	bool res = dwmac_transmit(tx);
-	LOG_TX_RES(res, "Sync #%lu", msg->seq_no);
+	LOG_TX_RES(res, "Sync #%" PRIu32, msg->seq_no);
 	return res;
 }
 
@@ -68,7 +71,7 @@ bool sync_send_long(uint64_t src)
 	dwmac_tx_set_txtime(tx, send_dtu);
 
 	bool res = dwmac_transmit(tx);
-	LOG_TX_RES(res, "Sync long #%lu", msg->seq_no);
+	LOG_TX_RES(res, "Sync long #%" PRIu32, msg->seq_no);
 	return res;
 }
 
@@ -86,7 +89,7 @@ void sync_handle_msg(const struct rxbuf* rx)
 	// LOG_DBGL_TS(DDL_TDOA, "\tTX TS*: ", msg->tx_ts);
 	// LOG_DBGL_TS(DDL_TDOA, "\tRX TS: ", rx->ts);
 
-	LOG_DBG("Received SYNC %lu from " LADDR_FMT, msg->seq_no, LADDR_PAR(src));
+	LOG_DBG("Received SYNC %" PRIu32 " from " LADDR_FMT, msg->seq_no, LADDR_PAR(src));
 
 #if CONFIG_DECA_USE_CARRIERINTEG
 	float skew = dwphy_get_rx_clock_offset_ci(rx->ci) * -1.0;
@@ -99,7 +102,7 @@ void sync_handle_msg(const struct rxbuf* rx)
 			mb->s.hdr.seqNo, mb->s.hdr.src, DWT_PAR(tx_ts), DWT_PAR(rx->ts),
 			double_to_sstr(skew));
 #else
-	LOG_DBG("SYNC LONG #%lu " LADDR_FMT " " DWT_FMT " " DWT_FMT " %f",
+	LOG_DBG("SYNC LONG #%" PRIu32 " " LADDR_FMT " " DWT_FMT " " DWT_FMT " %f",
 			msg->seq_no, LADDR_PAR(src), DWT_PAR(msg->tx_ts), DWT_PAR(rx->ts),
 			skew);
 #endif

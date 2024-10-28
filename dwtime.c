@@ -11,7 +11,6 @@
 #include <deca_version.h>
 
 #include "dwtime.h"
-#include "log.h"
 
 static uint64_t dw_last_ts;
 

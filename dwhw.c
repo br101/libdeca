@@ -25,7 +25,9 @@
 extern const struct dwt_probe_s dw3000_probe_interf;
 #endif
 
+#ifndef __ZEPHYR__
 static const char* LOG_TAG = "DECA";
+#endif
 static bool dwchip_ready = false;
 static float last_calib_temp;
 

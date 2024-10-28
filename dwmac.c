@@ -30,8 +30,9 @@
 #define SLOT_PROC_TIME	  500		 /* TODO: now used with systime: only TX */
 #define SLOT_GAP		  5
 
+#ifndef __ZEPHYR__
 static const char* LOG_TAG = "DECA";
-
+#endif
 static uint16_t panId;
 static uint16_t macAddr;
 static uint64_t mac64;
@@ -522,8 +523,8 @@ void dwmac_handle_rx_frame(const struct rxbuf* rx)
 	LOG_INF("RX to Sched:\t%d us", (int)DTU_TO_US(st - rx->ts));
 	LOG_INF("Time in CB:\t%d us",
 			(int)DTU_TO_US(rx->ts_irq_end - rx->ts_irq_start));
-	LOG_DBG("IRQ start %lu", (uint32_t)rx->ts_irq_start);
-	LOG_DBG("IRQ end %lu", (uint32_t)rx->ts_irq_end);
+	LOG_DBG("IRQ start %" PRIu32, (uint32_t)rx->ts_irq_start);
+	LOG_DBG("IRQ end %" PRIu32, (uint32_t)rx->ts_irq_end);
 #endif
 
 #if CONFIG_DECA_DEBUG_RX_DUMP

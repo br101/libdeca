@@ -19,11 +19,12 @@
 #include "dwproto.h"
 
 #include "log.h"
-
-static const char* LOG_TAG = "DECA";
-
 #define DWPHY_PRF			DWT_PRF_64M
 #define TEST_EXAMPLE_CONFIG 0
+
+#ifndef __ZEPHYR__
+static const char* LOG_TAG = "DECA";
+#endif
 
 #if TEST_EXAMPLE_CONFIG
 // this is the config used in many decadriver examples

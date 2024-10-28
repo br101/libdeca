@@ -14,3 +14,5 @@ LOG_MODULE_DECLARE(deca);
 #else
 #define DBG_UWB_IRQ(...) // don't log
 #endif
+
+#define LOG_HEXDUMP(_txt, _buf, _len) LOG_HEXDUMP_INF(_buf, _len, _txt)
