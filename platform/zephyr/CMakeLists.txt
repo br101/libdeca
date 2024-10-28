@@ -4,6 +4,7 @@ zephyr_library()
 
 zephyr_library_sources(
     log.c
+    dwmac_task.c
     ../../blink.c
     ../../dwhw.c
     ../../dwmac_irq.c
