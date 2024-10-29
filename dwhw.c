@@ -176,7 +176,7 @@ bool dwhw_wakeup(void)
 	dwmac_cleanup_sleep_after_tx();
 
 #if DWHW_DEBUG_WAKEUP
-	LOG_INF("WAKEUP STATE %lx STATUS %lx ENABLE %lx",
+	LOG_INF("WAKEUP STATE %" PRIx32 " STATUS %" PRIx32 " ENABLE %" PRIx32,
 			dwt_read32bitreg(SYS_STATE_LO_ID), dwt_read32bitreg(SYS_STATUS_ID),
 			dwt_read32bitreg(SYS_ENABLE_LO_ID));
 #endif

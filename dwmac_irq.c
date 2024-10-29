@@ -31,7 +31,8 @@ static uint32_t tx_done_cnt = 0;
 
 void dwmac_irq_rx_ok_cb(const dwt_cb_data_t* status)
 {
-	DBG_UWB_IRQ("*** RX 0x%lx flags 0x%x", status->status, status->rx_flags);
+	DBG_UWB_IRQ("*** RX 0x%" PRIx32 " flags 0x%x", status->status,
+				status->rx_flags);
 
 	struct rxbuf* rx = &rx_buffer;
 
@@ -106,7 +107,7 @@ void dwmac_irq_rx_ok_cb(const dwt_cb_data_t* status)
 
 void dwmac_irq_rx_to_cb(const dwt_cb_data_t* dat)
 {
-	DBG_UWB_IRQ("*** RX TO 0x%lx", dat->status);
+	DBG_UWB_IRQ("*** RX TO 0x%" PRIx32, dat->status);
 
 	/* reset timeout values to zero, if not they keep triggering */
 #ifdef DRIVER_VERSION_HEX // >= 0x060007
@@ -134,7 +135,7 @@ void dwmac_irq_rx_to_cb(const dwt_cb_data_t* dat)
 
 void dwmac_irq_err_cb(const dwt_cb_data_t* dat)
 {
-	DBG_UWB_IRQ("*** ERR 0x%x 0x%lx", dat->rx_flags, dat->status);
+	DBG_UWB_IRQ("*** ERR 0x%x 0x%" PRIx32, dat->rx_flags, dat->status);
 
 	if (rx_reenable || (current_tx != NULL && current_tx->resp_multi)) {
 		dwt_rxenable(DWT_START_RX_IMMEDIATE);
@@ -152,7 +153,7 @@ void dwmac_irq_err_cb(const dwt_cb_data_t* dat)
 
 void dwmac_irq_tx_done_cb(const dwt_cb_data_t* dat)
 {
-	DBG_UWB_IRQ("*** TX Done 0x%lx", dat->status);
+	DBG_UWB_IRQ("*** TX Done 0x%" PRIx32, dat->status);
 	tx_done_cnt++;
 
 	if (current_tx == NULL) {
