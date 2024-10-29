@@ -469,7 +469,7 @@ static void twr_handle_ss_response(const struct rxbuf* rx, uint64_t src)
 #endif
 
 	double tof
-		= DTU_TO_PS((rtd_init - rtd_resp * (1 - clockOffsetRatio)) / 2.0);
+		= DTU_TO_PS((rtd_init - rtd_resp * (1 - (double)clockOffsetRatio)) / 2.0);
 	int dist = TIME_TO_DISTANCE(tof) * 100;
 
 	dist = twr_fixup_distance(dist);
