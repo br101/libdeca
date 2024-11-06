@@ -1,5 +1,7 @@
 # SPDX-License-Identifier: Apache-2.0
 
+if(CONFIG_DW3000)
+
 zephyr_library()
 
 zephyr_library_sources(
@@ -21,3 +23,5 @@ zephyr_library_sources(
 zephyr_include_directories(../..)
 
 target_include_directories(${ZEPHYR_CURRENT_LIBRARY} PRIVATE .)
+
+endif()
