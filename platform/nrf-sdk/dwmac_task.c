@@ -59,7 +59,7 @@ int dwtask_queue_event(enum dwevent_e type, const void* data)
 	}
 
 	if (ret != NRF_SUCCESS) {
-		LOG_ERR("Failed to add event to scheduler! %d", ret);
+		LOG_ERR("Failed to add event to scheduler! %lu", ret);
 	}
 
 	return ret;

@@ -7,6 +7,7 @@
  * Version 3. See the file LICENSE.txt for more details.
  */
 
+#include <inttypes.h>
 #include <deca_device_api.h>
 #include <deca_version.h>
 #ifdef DW3000_DRIVER_VERSION // == 0x040000
