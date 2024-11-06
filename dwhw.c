@@ -148,7 +148,7 @@ bool dwhw_wakeup(void)
 		return false;
 	}
 
-	dw3000_spi_reinit();
+	dw3000_spi_init();
 	dw3000_hw_wakeup();
 
 #if DRIVER_VERSION_HEX >= 0x080202

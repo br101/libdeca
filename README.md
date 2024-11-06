@@ -55,7 +55,7 @@ static void twr_done_cb(uint64_t src, uint64_t dst, uint16_t dist,
 void test_twr(void)
 {
   // decadriver init
-  dw3000_hw_init(&dw_hw_cfg);
+  dw3000_hw_init();
   dw3000_hw_reset();
 
   // libdeca init
