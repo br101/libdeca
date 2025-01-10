@@ -57,12 +57,13 @@ void test_twr(void)
   // decadriver init
   dw3000_hw_init();
   dw3000_hw_reset();
+  dw3000_hw_init_interrupt();
 
   // libdeca init
   dwhw_init();
   dwphy_config();
   dwphy_set_antenna_delay(DWPHY_ANTENNA_DELAY);
-  dwmac_init(PANID, MAC16, dwprot_rx_handler, your_timeout_handler, your_error_handler);
+  dwmac_init(PANID, MAC16, dwprot_rx_handler, NULL, NULL);
   dwmac_set_frame_filter();
   twr_init(TWR_PROCESSING_DELAY);
   twr_set_observer(twr_done_cb);
