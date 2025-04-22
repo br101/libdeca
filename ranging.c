@@ -142,9 +142,9 @@ static bool twr_send_response(uint64_t tag, uint64_t poll_rx_ts)
 		expected_msg = TWR_MSG_FINA;
 	} else {
 		LOG_ERR("Failed to send Response to " LADDR_FMT, LADDR_PAR(tag));
-		LOG_INF_TS("rx_ts", poll_rx_ts);
-		LOG_INF_TS("tx_ts", resp_tx_time);
-		LOG_INF_TS("delay", twr_delay_dtu);
+		LOG_INF_TS("rx_ts: ", poll_rx_ts);
+		LOG_INF_TS("tx_ts: ", resp_tx_time);
+		LOG_INF_TS("delay: ", twr_delay_dtu);
 		expected_msg = 0;
 	}
 
