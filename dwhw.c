@@ -151,18 +151,6 @@ bool dwhw_wakeup(void)
 	dw3000_spi_init();
 	dw3000_hw_wakeup();
 
-#if DRIVER_VERSION_HEX >= 0x080202
-	dwt_restoreconfig(1);
-#else
-	dwt_restoreconfig();
-#endif
-
-	int ret = dwt_check_dev_id();
-	if (ret != DWT_SUCCESS) {
-		LOG_ERR("Failed to read device ID after wakeup!");
-		return false;
-	}
-
 	/* Wait for device to become ready (IDLE state) */
 	int cnt = 1000;
 	while (!dwt_checkidlerc() && cnt-- > 0) {
@@ -172,6 +160,18 @@ bool dwhw_wakeup(void)
 		LOG_ERR("Wakeup did not leave IDLE state");
 		return false;
 	}
+
+	int ret = dwt_check_dev_id();
+	if (ret != DWT_SUCCESS) {
+		LOG_ERR("Failed to read device ID after wakeup!");
+		return false;
+	}
+
+#if DRIVER_VERSION_HEX >= 0x080202
+	dwt_restoreconfig(1);
+#else
+	dwt_restoreconfig();
+#endif
 
 	dw3000_spi_speed_fast();
 	dwmac_cleanup_sleep_after_tx();
