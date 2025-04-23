@@ -144,8 +144,7 @@ void dwhw_sleep(void)
 bool dwhw_wakeup(void)
 {
 	if (dwchip_ready) {
-		LOG_ERR("Already woke up?");
-		return false;
+		return true;
 	}
 
 	dw3000_spi_init();
