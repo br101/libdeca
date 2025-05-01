@@ -18,6 +18,7 @@ zephyr_library_sources(
     ../../mac802154.c
     ../../ranging.c
     ../../sync.c
+    ../../dwtest.c
 )
 
 zephyr_include_directories(../..)
