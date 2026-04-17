@@ -14,6 +14,10 @@ static unsigned char buf[1024] = {1};
 #define ARRAY_SIZE(array) (sizeof(array) / sizeof((array)[0]))
 #endif
 
+#ifndef __ZEPHYR__
+static const char* LOG_TAG = "DECA";
+#endif
+
 #if defined(__ZEPHYR__) && CONFIG_TIMING_FUNCTIONS
 
 void dwtest_spi(void)
