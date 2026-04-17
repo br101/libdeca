@@ -1,12 +1,18 @@
 #include "dwtime.h"
 #include "log.h"
 #include <deca_device_api.h>
+#if defined(__ZEPHYR__)
 #include <zephyr/timing/timing.h>
+#endif
 
 static int sizes[] = {10, 12, 14, 15, 16, 18, 20, 50, 100, 200, 512};
 static unsigned char buf[1024] = {1};
 
 #define DWTEST_REPETITIONS 1000
+
+#ifndef ARRAY_SIZE
+#define ARRAY_SIZE(array) (sizeof(array) / sizeof((array)[0]))
+#endif
 
 #if defined(__ZEPHYR__) && CONFIG_TIMING_FUNCTIONS
 
