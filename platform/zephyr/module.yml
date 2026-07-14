@@ -7,4 +7,3 @@ build:
   depends:
     - decadriver
   cmake: ./zephyr/
-  kconfig:
